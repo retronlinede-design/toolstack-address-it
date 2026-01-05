@@ -148,6 +148,7 @@ const STR = {
     invalidJson: "Invalid JSON",
     exported: "Exported",
     copied: "Copied",
+    copy: "Copy",
     close: "Close",
     printHint: "Use your browser print dialog (Ctrl+P) to save PDF.",
     reportTitle: "Address-It report",
@@ -199,6 +200,7 @@ const STR = {
     invalidJson: "Ungültiges JSON",
     exported: "Exportiert",
     copied: "Kopiert",
+    copy: "Kopieren",
     close: "Schließen",
     printHint: "Nutze den Browser-Druckdialog (Strg+P) für PDF.",
     reportTitle: "Address-It Bericht",
@@ -233,7 +235,7 @@ function presetSections(lang, country) {
     },
     {
       key: "bank",
-      name: lang === "DE" ? "Banking" : "Banking",
+      name: "Banking",
       recommended: true,
       items: [
         lang === "DE" ? "Bank(en) Adresse ändern" : "Update address at bank(s)",
@@ -262,9 +264,7 @@ function presetSections(lang, country) {
       key: "utilities",
       name: lang === "DE" ? "Utilities" : "Utilities",
       recommended: isDE,
-      items: isDE
-        ? ["Strom anmelden/ummelden", "Internet/Router", "Handyvertrag"]
-        : ["Electricity", "Internet", "Mobile plan"],
+      items: isDE ? ["Strom anmelden/ummelden", "Internet/Router", "Handyvertrag"] : ["Electricity", "Internet", "Mobile plan"],
     },
     {
       key: "delivery",
@@ -297,7 +297,12 @@ function presetSections(lang, country) {
     key: "wohn",
     name: "Wohnen",
     recommended: true,
-    items: ["Vermieter / Hausverwaltung informieren", "Mietvertrag/Übergabeprotokoll", "Zählerstände (Strom/Wasser)", "Kaution / Abrechnung"],
+    items: [
+      "Vermieter / Hausverwaltung informieren",
+      "Mietvertrag/Übergabeprotokoll",
+      "Zählerstände (Strom/Wasser)",
+      "Kaution / Abrechnung",
+    ],
   };
 
   const worldExtras = {
@@ -314,7 +319,7 @@ function presetSections(lang, country) {
 const ACTION_BASE =
   "ts-no-print h-10 w-full min-w-0 px-3 rounded-xl text-sm font-medium leading-none whitespace-nowrap overflow-hidden text-ellipsis border transition shadow-sm active:translate-y-[1px] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center";
 
-function ActionButton({ children, onClick, tone = "default", disabled, title }) {
+function ActionButton({ children, onClick, tone = "default", disabled, title, className = "" }) {
   const cls =
     tone === "primary"
       ? "bg-neutral-700 hover:bg-neutral-600 text-white border-neutral-700"
@@ -323,13 +328,13 @@ function ActionButton({ children, onClick, tone = "default", disabled, title }) 
       : "bg-white hover:bg-neutral-50 text-neutral-700 border-neutral-200";
 
   return (
-    <button type="button" onClick={onClick} title={title} disabled={disabled} className={`${ACTION_BASE} ${cls}`}>
+    <button type="button" onClick={onClick} title={title} disabled={disabled} className={`${ACTION_BASE} ${cls} ${className}`}>
       <span className="truncate">{children}</span>
     </button>
   );
 }
 
-function ActionFileButton({ children, onFile, accept = "application/json", tone = "primary", title }) {
+function ActionFileButton({ children, onFile, accept = "application/json", tone = "primary", title, className = "" }) {
   const inputIdRef = useRef(uid());
 
   const cls =
@@ -338,7 +343,7 @@ function ActionFileButton({ children, onFile, accept = "application/json", tone 
       : "bg-white hover:bg-neutral-50 text-neutral-700 border-neutral-200";
 
   return (
-    <label title={title} className={`${ACTION_BASE} ${cls} cursor-pointer`} htmlFor={inputIdRef.current}>
+    <label title={title} className={`${ACTION_BASE} ${cls} ${className} cursor-pointer`} htmlFor={inputIdRef.current}>
       <span className="truncate">{children}</span>
       <input
         id={inputIdRef.current}
@@ -795,6 +800,12 @@ export default function App() {
       console.assert(norm.country === "DE" || norm.country === "WORLD", "country should be DE/WORLD");
       console.assert(Array.isArray(norm.sections), "sections should be array");
 
+      // additional tests
+      console.assert(toDateLabel(todayISO(), "EN").length > 0, "toDateLabel should return a readable label");
+      const norm2 = normalizeApp({ lang: "DE", country: "WORLD", sections: [{ name: "", items: [{ title: null, notes: null, due: "" }] }] });
+      console.assert(norm2.country === "WORLD", "normalizeApp should keep WORLD");
+      console.assert(norm2.sections[0].name === "Untitled", "empty section name should normalize to Untitled");
+
       // localStorage safety: should not throw
       safeStorageSet("__toolstack_test__", "1");
       safeStorageRemove("__toolstack_test__");
@@ -1079,7 +1090,6 @@ export default function App() {
     : "";
 
   // ---------------- Render ----------------
-  const fixedMenuHeightPad = "pt-24 sm:pt-20"; // fixed actions bar height padding
 
   return (
     <div className="min-h-screen bg-neutral-50 text-neutral-800">
@@ -1225,52 +1235,8 @@ export default function App() {
         </div>
       </PreviewModal>
 
-      {/* Fixed top actions bar (ONLY the menu is fixed — heading below stays unchanged) */}
-      <div className="fixed top-0 left-0 right-0 z-40 bg-neutral-50/95 backdrop-blur border-b border-neutral-200">
-        <div className="max-w-6xl mx-auto p-3 sm:px-6">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-xs text-neutral-500">ToolStack</div>
-              <div className="text-sm font-semibold text-neutral-800 truncate">Address-It</div>
-            </div>
-
-            <div className="w-full sm:w-auto relative">
-              {/* Master Top Actions grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pr-12">
-                <ActionButton onClick={openPreview}>{L.preview}</ActionButton>
-                <ActionButton onClick={printSavePDF}>{L.printPdf}</ActionButton>
-                <ActionButton onClick={exportJSON}>{L.export}</ActionButton>
-                <ActionFileButton
-                  onFile={(f) => {
-                    if (!f) return;
-                    setImportConfirm({ open: true, file: f });
-                  }}
-                  tone="primary"
-                  title={lang === "DE" ? "JSON Backup importieren (ersetzt Daten)" : "Import JSON backup (replaces data)"}
-                >
-                  {L.import}
-                </ActionFileButton>
-              </div>
-
-              {/* Pinned right: Language + Help */}
-              <div className="absolute right-0 top-0 flex items-center gap-2">
-                <select
-                  className="ts-no-print h-10 rounded-xl border border-neutral-200 bg-white px-2 text-sm text-neutral-700 shadow-sm"
-                  value={app.lang}
-                  onChange={(e) => setApp((a) => ({ ...a, lang: e.target.value === "DE" ? "DE" : "EN" }))}
-                  aria-label="Language"
-                >
-                  <option value="EN">EN</option>
-                  <option value="DE">DE</option>
-                </select>
-                <HelpIconButton onClick={() => setHelpOpen(true)} title={L.help} />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className={`max-w-6xl mx-auto p-4 sm:p-6 ${fixedMenuHeightPad}`}>
+      {/* Content */}
+      <div className="max-w-6xl mx-auto p-4 sm:p-6">
         {/* MAIN HEADING */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -1301,9 +1267,49 @@ export default function App() {
             </div>
           </div>
 
-          {/* Secondary actions (non-fixed) */}
-          <div className="w-full sm:w-auto">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {/* Top menu (inline with heading, master-style) */}
+          <div className="w-full sm:w-[680px]">
+            <div className="relative">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 pr-32">
+                <ActionButton onClick={openPreview} disabled={totals.total === 0} title={L.preview}>
+                  {L.preview}
+                </ActionButton>
+                <ActionButton onClick={printSavePDF} disabled={totals.total === 0} title={L.printPdf}>
+                  {L.printPdf}
+                </ActionButton>
+                <ActionButton onClick={exportJSON} title={L.export}>
+                  {L.export}
+                </ActionButton>
+                <ActionFileButton
+                  onFile={(f) => {
+                    if (!f) return;
+                    setImportConfirm({ open: true, file: f });
+                  }}
+                  tone="primary"
+                  title={lang === "DE" ? "JSON Backup importieren (ersetzt Daten)" : "Import JSON backup (replaces data)"}
+                >
+                  {L.import}
+                </ActionFileButton>
+              </div>
+
+              {/* Pinned right controls */}
+              <div className="absolute right-0 top-0 flex items-center gap-2">
+                <select
+                  className="ts-no-print h-10 w-[72px] rounded-xl border border-neutral-200 bg-white px-2 text-sm text-neutral-700 shadow-sm"
+                  value={app.lang}
+                  onChange={(e) => setApp((a) => ({ ...a, lang: e.target.value === "DE" ? "DE" : "EN" }))}
+                  aria-label="Language"
+                  title="Language"
+                >
+                  <option value="EN">EN</option>
+                  <option value="DE">DE</option>
+                </select>
+                <HelpIconButton onClick={() => setHelpOpen(true)} title={L.help} />
+              </div>
+            </div>
+
+            {/* Secondary actions */}
+            <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
               <ActionButton onClick={openWizard}>{L.setup}</ActionButton>
               <ActionButton onClick={exportCSV}>{L.csv}</ActionButton>
               <ActionButton tone="danger" onClick={resetApp} title={lang === "DE" ? "Alles löschen" : "Clear all"}>
@@ -1368,7 +1374,9 @@ export default function App() {
                   })}
                 </div>
 
-                <div className="mt-3 text-xs text-neutral-600">{lang === "DE" ? "Tipp: Setup fügt mehrere Bereiche auf einmal hinzu." : "Tip: Setup adds multiple sections at once."}</div>
+                <div className="mt-3 text-xs text-neutral-600">
+                  {lang === "DE" ? "Tipp: Setup fügt mehrere Bereiche auf einmal hinzu." : "Tip: Setup adds multiple sections at once."}
+                </div>
               </div>
 
               <div className="text-xs text-neutral-600">
@@ -1518,14 +1526,14 @@ export default function App() {
                                   onClick={() => {
                                     try {
                                       const txt = `${it.title}\n\n${it.notes || ""}`.trim();
-                                      if (navigator && navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt);
+                                      if (navigator?.clipboard?.writeText) navigator.clipboard.writeText(txt);
                                       notify(L.copied);
                                     } catch {
                                       // ignore
                                     }
                                   }}
                                 >
-                                  Copy
+                                  {L.copy}
                                 </button>
 
                                 <button
