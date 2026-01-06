@@ -87,6 +87,33 @@ const daysUntil = (iso) => {
   }
 };
 
+// Master Pack v1.1 — Inputs select-all-on-focus
+const selectAllOnFocus = (e) => {
+  const el = e?.target;
+  if (!el) return;
+  requestAnimationFrame(() => {
+    try {
+      if (typeof el.select === "function") el.select();
+      const len = String(el.value ?? "").length;
+      if (typeof el.setSelectionRange === "function") el.setSelectionRange(0, len);
+    } catch {
+      // ignore
+    }
+  });
+};
+
+// Master Pack v1.1 — Language default
+function defaultLang() {
+  const stored = safeStorageGet(`${KEY}.lang`);
+  if (stored === "DE" || stored === "EN") return stored;
+  try {
+    const nav = typeof navigator !== "undefined" ? String(navigator.language || "") : "";
+    return nav.toLowerCase().startsWith("de") ? "DE" : "EN";
+  } catch {
+    return "EN";
+  }
+}
+
 // ---------------- Shared profile ----------------
 function loadProfile() {
   const p = safeParse(safeStorageGet(PROFILE_KEY), null);
@@ -109,10 +136,10 @@ const STR = {
     worldwide: "Worldwide",
     setup: "Setup",
     preview: "Preview",
-    printPdf: "Print / PDF",
+    savePdf: "Save PDF",
     export: "Export",
     import: "Import",
-    csv: "CSV",
+    csv: "Export CSV",
     help: "Help",
     reset: "Reset",
     sections: "Sections",
@@ -150,9 +177,12 @@ const STR = {
     copied: "Copied",
     copy: "Copy",
     close: "Close",
-    printHint: "Use your browser print dialog (Ctrl+P) to save PDF.",
+    gotIt: "Got it",
+    resetAppData: "Reset app data",
     reportTitle: "Address-It report",
     generated: "Generated",
+    hub: "Hub",
+    hubMissing: "Hub URL not set. Update HUB_URL in App.jsx.",
   },
   DE: {
     tagline: "Adressänderung beim Umzug organisieren",
@@ -161,10 +191,10 @@ const STR = {
     worldwide: "Weltweit",
     setup: "Setup",
     preview: "Vorschau",
-    printPdf: "Drucken / PDF",
+    savePdf: "PDF speichern",
     export: "Export",
     import: "Import",
-    csv: "CSV",
+    csv: "CSV-Export",
     help: "Hilfe",
     reset: "Reset",
     sections: "Bereiche",
@@ -202,9 +232,12 @@ const STR = {
     copied: "Kopiert",
     copy: "Kopieren",
     close: "Schließen",
-    printHint: "Nutze den Browser-Druckdialog (Strg+P) für PDF.",
+    gotIt: "Verstanden",
+    resetAppData: "App-Daten zurücksetzen",
     reportTitle: "Address-It Bericht",
     generated: "Erstellt",
+    hub: "Hub",
+    hubMissing: "Hub-URL nicht gesetzt. Bitte HUB_URL in App.jsx aktualisieren.",
   },
 };
 
@@ -255,10 +288,7 @@ function presetSections(lang, country) {
       key: "work",
       name: lang === "DE" ? "Arbeitgeber" : "Employer",
       recommended: true,
-      items: [
-        lang === "DE" ? "HR / Payroll" : "HR / payroll",
-        lang === "DE" ? "Arbeitsweg / Parkausweis" : "Commute / parking permit",
-      ],
+      items: [lang === "DE" ? "HR / Payroll" : "HR / payroll", lang === "DE" ? "Arbeitsweg / Parkausweis" : "Commute / parking permit"],
     },
     {
       key: "utilities",
@@ -280,10 +310,7 @@ function presetSections(lang, country) {
       key: "medical",
       name: lang === "DE" ? "Ärzte" : "Medical",
       recommended: false,
-      items: [
-        lang === "DE" ? "Hausarzt/ Fachärzte informieren" : "Inform GP / specialists",
-        lang === "DE" ? "Apotheke / Rezepte" : "Pharmacy / prescriptions",
-      ],
+      items: [lang === "DE" ? "Hausarzt/ Fachärzte informieren" : "Inform GP / specialists", lang === "DE" ? "Apotheke / Rezepte" : "Pharmacy / prescriptions"],
     },
     {
       key: "subscriptions",
@@ -297,12 +324,7 @@ function presetSections(lang, country) {
     key: "wohn",
     name: "Wohnen",
     recommended: true,
-    items: [
-      "Vermieter / Hausverwaltung informieren",
-      "Mietvertrag/Übergabeprotokoll",
-      "Zählerstände (Strom/Wasser)",
-      "Kaution / Abrechnung",
-    ],
+    items: ["Vermieter / Hausverwaltung informieren", "Mietvertrag/Übergabeprotokoll", "Zählerstände (Strom/Wasser)", "Kaution / Abrechnung"],
   };
 
   const worldExtras = {
@@ -316,34 +338,34 @@ function presetSections(lang, country) {
 }
 
 // ---------------- UI helpers (ToolStack master) ----------------
-const ACTION_BASE =
-  "ts-no-print h-10 w-full min-w-0 px-3 rounded-xl text-sm font-medium leading-none whitespace-nowrap overflow-hidden text-ellipsis border transition shadow-sm active:translate-y-[1px] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center";
+const TS_BUTTON_BASE =
+  "ts-no-print h-10 w-full min-w-0 px-3 rounded-xl text-sm font-medium leading-none whitespace-nowrap overflow-hidden text-ellipsis border transition shadow-sm active:translate-y-[1px] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ts-accent-rgb)/0.25)]";
 
-function ActionButton({ children, onClick, tone = "default", disabled, title, className = "" }) {
+function TSButton({ children, onClick, variant = "neutral", disabled, title, className = "" }) {
   const cls =
-    tone === "primary"
+    variant === "accent"
+      ? "bg-[var(--ts-accent)] text-neutral-900 border-[var(--ts-accent)] hover:bg-[rgb(var(--ts-accent-rgb)/0.85)]"
+      : variant === "dark"
       ? "bg-neutral-700 hover:bg-neutral-600 text-white border-neutral-700"
-      : tone === "danger"
+      : variant === "danger"
       ? "bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
-      : "bg-white hover:bg-neutral-50 text-neutral-700 border-neutral-200";
+      : "bg-white text-neutral-800 border-neutral-200 hover:bg-[rgb(var(--ts-accent-rgb)/0.25)] hover:border-[var(--ts-accent)]";
 
   return (
-    <button type="button" onClick={onClick} title={title} disabled={disabled} className={`${ACTION_BASE} ${cls} ${className}`}>
+    <button type="button" onClick={onClick} title={title} disabled={disabled} className={`${TS_BUTTON_BASE} ${cls} ${className}`}>
       <span className="truncate">{children}</span>
     </button>
   );
 }
 
-function ActionFileButton({ children, onFile, accept = "application/json", tone = "primary", title, className = "" }) {
+function TSFileButton({ children, onFile, accept = "application/json", title, className = "" }) {
   const inputIdRef = useRef(uid());
-
-  const cls =
-    tone === "primary"
-      ? "bg-neutral-700 hover:bg-neutral-600 text-white border-neutral-700"
-      : "bg-white hover:bg-neutral-50 text-neutral-700 border-neutral-200";
-
   return (
-    <label title={title} className={`${ACTION_BASE} ${cls} ${className} cursor-pointer`} htmlFor={inputIdRef.current}>
+    <label
+      title={title}
+      className={`${TS_BUTTON_BASE} bg-white text-neutral-800 border-neutral-200 hover:bg-[rgb(var(--ts-accent-rgb)/0.25)] hover:border-[var(--ts-accent)] cursor-pointer ${className}`}
+      htmlFor={inputIdRef.current}
+    >
       <span className="truncate">{children}</span>
       <input
         id={inputIdRef.current}
@@ -369,17 +391,55 @@ function HelpIconButton({ onClick, title = "Help" }) {
       aria-label={title}
       className={
         "ts-no-print h-10 w-10 shrink-0 rounded-xl border border-neutral-200 bg-white shadow-sm " +
-        "hover:bg-neutral-50 active:translate-y-[1px] transition flex items-center justify-center " +
-        "focus:outline-none focus:ring-2 focus:ring-lime-400/25 focus:border-neutral-300"
+        "hover:bg-[rgb(var(--ts-accent-rgb)/0.25)] hover:border-[var(--ts-accent)] active:translate-y-[1px] transition flex items-center justify-center " +
+        "focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ts-accent-rgb)/0.25)]"
       }
     >
-      <span className="text-base font-black text-neutral-700 leading-none">?</span>
+      <span className="text-base font-black text-neutral-800 leading-none">?</span>
     </button>
   );
 }
 
+function LanguageToggle({ lang, setLang }) {
+  // Standard ToolStack language toggle (EN/DE) — use across apps
+  const btnBase =
+    "px-3 py-1.5 rounded-lg text-xs font-extrabold tracking-wide transition " +
+    "focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ts-accent-rgb)/0.30)]";
+
+  return (
+    <div className="inline-flex items-center rounded-xl border border-neutral-200 bg-white p-1 shadow-sm">
+      <button
+        type="button"
+        onClick={() => setLang("en")}
+        className={
+          btnBase +
+          (lang === "en"
+            ? " bg-[var(--ts-accent)] text-neutral-900"
+            : " bg-transparent text-neutral-800 hover:bg-[rgb(var(--ts-accent-rgb)/0.25)]")
+        }
+        aria-pressed={lang === "en"}
+      >
+        EN
+      </button>
+      <button
+        type="button"
+        onClick={() => setLang("de")}
+        className={
+          btnBase +
+          (lang === "de"
+            ? " bg-[var(--ts-accent)] text-neutral-900"
+            : " bg-transparent text-neutral-800 hover:bg-[rgb(var(--ts-accent-rgb)/0.25)]")
+        }
+        aria-pressed={lang === "de"}
+      >
+        DE
+      </button>
+    </div>
+  );
+}
+
 const inputBase =
-  "w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-lime-400/25 focus:border-neutral-300";
+  "w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ts-accent-rgb)/0.25)] focus:border-[var(--ts-accent)]";
 const card = "rounded-2xl bg-white border border-neutral-200 shadow-sm";
 const cardHead = "px-4 py-3 border-b border-neutral-100";
 const cardPad = "p-4";
@@ -387,7 +447,7 @@ const cardPad = "p-4";
 function Pill({ children, tone = "default" }) {
   const cls =
     tone === "accent"
-      ? "border-lime-200 bg-lime-50 text-neutral-800"
+      ? "border-[var(--ts-accent)] bg-[rgb(var(--ts-accent-rgb)/0.20)] text-neutral-800"
       : tone === "warn"
       ? "border-amber-200 bg-amber-50 text-neutral-800"
       : tone === "ok"
@@ -405,12 +465,12 @@ function ConfirmModal({ open, title, message, confirmText = "Delete", cancelText
         <div className="p-4 border-b border-neutral-100">
           <div className="text-lg font-semibold text-neutral-800">{title}</div>
           <div className="text-sm text-neutral-700 mt-1">{message}</div>
-          <div className="mt-3 h-[2px] w-40 rounded-full bg-gradient-to-r from-lime-400/0 via-lime-400 to-emerald-400/0" />
+          <div className="mt-3 h-[2px] w-40 rounded-full bg-[var(--ts-accent)]" />
         </div>
         <div className="p-4 flex items-center justify-end gap-2">
           <button
             type="button"
-            className="ts-no-print px-3 py-2 rounded-xl text-sm font-medium border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-800 transition"
+            className="ts-no-print px-3 py-2 rounded-xl text-sm font-medium border border-neutral-200 bg-white hover:bg-[rgb(var(--ts-accent-rgb)/0.25)] hover:border-[var(--ts-accent)] text-neutral-800 transition"
             onClick={onCancel}
           >
             {cancelText}
@@ -428,74 +488,117 @@ function ConfirmModal({ open, title, message, confirmText = "Delete", cancelText
   );
 }
 
-function HelpModal({ open, onClose, appName = "Address-It", storageKey = "(unknown)", lang = "EN" }) {
+function HelpModal({ open, onClose, onReset, appName = "Address-It", storageKey = "(unknown)", lang = "EN" }) {
   if (!open) return null;
   const L = STR[lang] || STR.EN;
 
-  const Bullet = ({ children }) => <li className="ml-4 list-disc">{children}</li>;
+  const Section = ({ title, children }) => (
+    <div className="rounded-2xl border border-neutral-200 bg-white p-4 space-y-2">
+      <div className="text-sm font-semibold text-neutral-800">{title}</div>
+      <div className="text-sm text-neutral-700 leading-relaxed space-y-2">{children}</div>
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
-      <div className="absolute inset-0 flex items-center justify-center p-4 sm:p-8">
-        <div className="w-full max-w-2xl rounded-2xl border border-neutral-200 bg-white shadow-xl overflow-hidden">
-          <div className="p-4 border-b border-neutral-100 flex items-start justify-between gap-4">
+      <div className="absolute inset-0 flex items-start justify-center p-4 sm:items-center sm:p-8">
+        <div className="w-full max-w-2xl rounded-2xl border border-neutral-200 bg-white shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
+          {/* Sticky header */}
+          <div className="sticky top-0 z-10 bg-white p-4 border-b border-neutral-100 flex items-start justify-between gap-4">
             <div>
-              <div className="text-sm text-neutral-500">ToolStack • Help Pack v1</div>
-              <h2 className="text-lg font-semibold text-neutral-800">{appName} — how your data works</h2>
-              <div className="mt-3 h-[2px] w-56 rounded-full bg-gradient-to-r from-lime-400/0 via-lime-400 to-emerald-400/0" />
+              <div className="text-sm text-neutral-500">ToolStack • Help Pack v1.1</div>
+              <h2 className="text-lg font-semibold text-neutral-800">{appName}</h2>
+              <div className="mt-3 h-[2px] w-56 rounded-full bg-[var(--ts-accent)]" />
             </div>
-
-            <button
-              type="button"
-              className="ts-no-print px-3 py-2 rounded-xl text-sm font-medium border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-800 transition"
-              onClick={onClose}
-            >
+            <TSButton variant="dark" onClick={onClose} className="w-auto px-3">
               {L.close}
-            </button>
+            </TSButton>
           </div>
 
-          <div className="p-4 space-y-3 max-h-[70vh] overflow-auto">
-            <div className="rounded-2xl border border-neutral-200 bg-white p-4 space-y-2">
-              <div className="text-sm font-semibold text-neutral-800">Quick start</div>
-              <ul className="text-sm text-neutral-700 space-y-1">
-                <Bullet>Use Setup to add recommended sections.</Bullet>
-                <Bullet>Add custom items inside any section.</Bullet>
-                <Bullet>Use Preview → Print/PDF for a clean report.</Bullet>
-                <Bullet>Export weekly for backups. Import restores a backup (replaces current data).</Bullet>
-              </ul>
-            </div>
+          {/* Scroll body */}
+          <div className="p-4 space-y-3 overflow-auto flex-1">
+            <Section title={lang === "DE" ? "1) Autosave" : "1) Autosave"}>
+              <div>{lang === "DE" ? "Deine Daten werden automatisch im Browser gespeichert (localStorage)." : "Your data autosaves locally in your browser (localStorage)."}</div>
+            </Section>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="rounded-2xl border border-neutral-200 bg-white p-4 space-y-2">
-                <div className="text-sm font-semibold text-neutral-800">Where your data lives</div>
-                <div className="text-sm text-neutral-700 leading-relaxed">Stored locally in your browser (localStorage). No login.</div>
-              </div>
-              <div className="rounded-2xl border border-neutral-200 bg-white p-4 space-y-2">
-                <div className="text-sm font-semibold text-neutral-800">Storage key</div>
-                <div className="rounded-2xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-700">
-                  <span className="font-mono">{storageKey}</span>
-                </div>
-                <div className="text-xs text-neutral-600">Profile key: {PROFILE_KEY}</div>
-              </div>
-            </div>
+            <Section title={lang === "DE" ? "2) Export" : "2) Export"}>
+              <div>{lang === "DE" ? "Export lädt eine JSON-Backup-Datei herunter." : "Export downloads a JSON backup file."}</div>
+            </Section>
 
-            <div className="rounded-2xl border border-neutral-200 bg-white p-4 space-y-2">
-              <div className="text-sm font-semibold text-neutral-800">Print behavior</div>
-              <div className="text-sm text-neutral-700 leading-relaxed">
-                Preview prints only the report sheet. Buttons and menus are hidden in print.
+            <Section title={lang === "DE" ? "3) Import" : "3) Import"}>
+              <div>
+                {lang === "DE"
+                  ? "Import ersetzt deine aktuellen Daten durch den Inhalt der Backup-Datei. Tipp: vorher exportieren."
+                  : "Import replaces your current data with the backup file contents. Tip: export first."}
               </div>
-            </div>
+            </Section>
+
+            <Section title={lang === "DE" ? "4) PDF speichern" : "4) Save PDF"}>
+              <div>
+                {lang === "DE"
+                  ? "Öffne Vorschau → klicke „PDF speichern“. Es öffnet sich der Browser-Druckdialog; dort „Als PDF speichern“ wählen."
+                  : "Open Preview → click “Save PDF”. Your browser print dialog opens; choose “Save as PDF”."}
+              </div>
+              <div>{lang === "DE" ? "Beim Drucken wird nur das Vorschau-Blatt gedruckt." : "Printing is scoped to the preview sheet only."}</div>
+            </Section>
+
+            <Section title={lang === "DE" ? "5) Limits" : "5) Limits"}>
+              <div>{lang === "DE" ? "Dieses Tool ist ein MVP. Kein Login, keine Cloud-Sync." : "This tool is an MVP. No login and no cloud sync."}</div>
+            </Section>
+
+            <Section title={lang === "DE" ? "6) Offizielle Links" : "6) Official links"}>
+              <div>
+                {HUB_URL && !String(HUB_URL).includes("YOUR-WIX-HUB-URL-HERE") ? (
+                  <a className="underline" href={HUB_URL} target="_blank" rel="noreferrer">
+                    {lang === "DE" ? "Zum ToolStack Hub" : "Open ToolStack Hub"}
+                  </a>
+                ) : (
+                  <span className="text-neutral-600">{lang === "DE" ? "(Kein Hub-Link konfiguriert)" : "(No hub link configured)"}</span>
+                )}
+              </div>
+            </Section>
+
+            <Section title={lang === "DE" ? "7) Tipp" : "7) Tip"}>
+              <div>{lang === "DE" ? "Tipp: Exportiere wöchentlich als Backup." : "Tip: export weekly for backups."}</div>
+            </Section>
+
+            <Section title={lang === "DE" ? "8) Storage keys" : "8) Storage keys"}>
+              <div className="rounded-2xl border border-neutral-200 bg-neutral-50 px-3 py-2">
+                <div className="text-xs text-neutral-600">App</div>
+                <div className="text-sm text-neutral-800 font-mono break-all">{storageKey}</div>
+              </div>
+              <div className="rounded-2xl border border-neutral-200 bg-neutral-50 px-3 py-2">
+                <div className="text-xs text-neutral-600">Profile (reserved)</div>
+                <div className="text-sm text-neutral-800 font-mono break-all">{PROFILE_KEY}</div>
+              </div>
+              <div className="text-xs text-neutral-600">Lang key: {`${storageKey}.lang`}</div>
+            </Section>
           </div>
 
+          {/* Always-visible footer */}
           <div className="p-4 border-t border-neutral-100 flex items-center justify-end gap-2">
-            <button
-              type="button"
-              className="ts-no-print px-3 py-2 rounded-xl text-sm font-medium border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-800 transition"
-              onClick={onClose}
+            <TSButton
+              variant="danger"
+              onClick={() => {
+                try {
+                  const ok =
+                    typeof window !== "undefined"
+                      ? window.confirm(lang === "DE" ? "App-Daten wirklich löschen?" : "Reset app data? This cannot be undone.")
+                      : true;
+                  if (!ok) return;
+                } catch {
+                  // ignore
+                }
+                onReset?.();
+              }}
+              className="w-auto px-3"
             >
-              {L.close}
-            </button>
+              {L.resetAppData}
+            </TSButton>
+            <TSButton variant="accent" onClick={onClose} className="w-auto px-3">
+              {L.gotIt}
+            </TSButton>
           </div>
         </div>
       </div>
@@ -514,21 +617,15 @@ function PreviewModal({ open, onClose, onPrint, children, lang }) {
         <div className="mb-3 rounded-2xl bg-white border border-neutral-200 shadow-sm p-3 flex items-center justify-between gap-3">
           <div>
             <div className="text-lg font-semibold text-neutral-800">{L.preview}</div>
-            <div className="text-xs text-neutral-600">{L.printHint}</div>
+            <div className="text-xs text-neutral-600">{lang === "DE" ? "Druckdialog öffnet sich im Browser." : "Browser print dialog opens."}</div>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              className="ts-no-print px-3 py-2 rounded-xl text-sm font-medium border border-neutral-700 bg-neutral-700 text-white shadow-sm hover:bg-neutral-600 active:translate-y-[1px] transition"
-              onClick={onPrint}
-            >
-              {L.printPdf}
-            </button>
-            <button
-              className="ts-no-print px-3 py-2 rounded-xl text-sm font-medium border border-neutral-200 bg-white shadow-sm hover:bg-neutral-50 active:translate-y-[1px] transition"
-              onClick={onClose}
-            >
+            <TSButton variant="accent" onClick={onPrint} className="w-auto px-3">
+              {L.savePdf}
+            </TSButton>
+            <TSButton variant="dark" onClick={onClose} className="w-auto px-3">
               {L.close}
-            </button>
+            </TSButton>
           </div>
         </div>
 
@@ -577,15 +674,11 @@ function WizardModal({ open, onClose, lang, draft, setDraft, onFinish }) {
             <div>
               <div className="text-sm text-neutral-500">ToolStack • {L.wizardTitle}</div>
               <h2 className="text-lg font-semibold text-neutral-800">{L.wizardIntro}</h2>
-              <div className="mt-3 h-[2px] w-72 rounded-full bg-gradient-to-r from-lime-400/0 via-lime-400 to-emerald-400/0" />
+              <div className="mt-3 h-[2px] w-72 rounded-full bg-[var(--ts-accent)]" />
             </div>
-            <button
-              type="button"
-              className="ts-no-print px-3 py-2 rounded-xl text-sm font-medium border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-800 transition"
-              onClick={onClose}
-            >
+            <TSButton variant="dark" onClick={onClose} className="w-auto px-3">
               {L.close}
-            </button>
+            </TSButton>
           </div>
 
           <div className="p-4 space-y-4 max-h-[70vh] overflow-auto">
@@ -596,10 +689,10 @@ function WizardModal({ open, onClose, lang, draft, setDraft, onFinish }) {
                   <button
                     type="button"
                     className={
-                      "ts-no-print h-12 rounded-2xl border text-sm font-medium transition " +
+                      "ts-no-print h-12 rounded-2xl border text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ts-accent-rgb)/0.25)] " +
                       (draft.country === "DE"
                         ? "border-neutral-700 bg-neutral-700 text-white"
-                        : "border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-700")
+                        : "border-neutral-200 bg-white hover:bg-[rgb(var(--ts-accent-rgb)/0.25)] hover:border-[var(--ts-accent)] text-neutral-700")
                     }
                     onClick={() => setDraft((d) => ({ ...d, country: "DE" }))}
                   >
@@ -608,10 +701,10 @@ function WizardModal({ open, onClose, lang, draft, setDraft, onFinish }) {
                   <button
                     type="button"
                     className={
-                      "ts-no-print h-12 rounded-2xl border text-sm font-medium transition " +
+                      "ts-no-print h-12 rounded-2xl border text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ts-accent-rgb)/0.25)] " +
                       (draft.country === "WORLD"
                         ? "border-neutral-700 bg-neutral-700 text-white"
-                        : "border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-700")
+                        : "border-neutral-200 bg-white hover:bg-[rgb(var(--ts-accent-rgb)/0.25)] hover:border-[var(--ts-accent)] text-neutral-700")
                     }
                     onClick={() => setDraft((d) => ({ ...d, country: "WORLD" }))}
                   >
@@ -638,8 +731,10 @@ function WizardModal({ open, onClose, lang, draft, setDraft, onFinish }) {
                         type="button"
                         onClick={() => toggle(p.key)}
                         className={
-                          "ts-no-print w-full text-left rounded-2xl border p-3 transition " +
-                          (selected ? "border-neutral-700 bg-neutral-700 text-white" : "border-neutral-200 bg-white hover:bg-neutral-50")
+                          "ts-no-print w-full text-left rounded-2xl border p-3 transition focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ts-accent-rgb)/0.25)] " +
+                          (selected
+                            ? "border-neutral-700 bg-neutral-700 text-white"
+                            : "border-neutral-200 bg-white hover:bg-[rgb(var(--ts-accent-rgb)/0.25)] hover:border-[var(--ts-accent)]")
                         }
                       >
                         <div className="flex items-center justify-between gap-2">
@@ -648,7 +743,9 @@ function WizardModal({ open, onClose, lang, draft, setDraft, onFinish }) {
                             <span
                               className={
                                 "text-xs font-medium px-2 py-1 rounded-full border " +
-                                (selected ? "border-white/30 bg-white/10 text-white" : "border-lime-200 bg-lime-50 text-neutral-800")
+                                (selected
+                                  ? "border-white/30 bg-white/10 text-white"
+                                  : "border-[var(--ts-accent)] bg-[rgb(var(--ts-accent-rgb)/0.20)] text-neutral-800")
                               }
                             >
                               {L.recommended}
@@ -668,31 +765,18 @@ function WizardModal({ open, onClose, lang, draft, setDraft, onFinish }) {
           </div>
 
           <div className="p-4 border-t border-neutral-100 flex items-center justify-between gap-2">
-            <button
-              type="button"
-              className="ts-no-print px-3 py-2 rounded-xl text-sm font-medium border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-800 transition"
-              onClick={back}
-              disabled={stepIndex === 0}
-            >
+            <TSButton variant="neutral" onClick={back} disabled={stepIndex === 0} className="w-auto px-3">
               {L.back}
-            </button>
+            </TSButton>
 
             {stepIndex < steps.length - 1 ? (
-              <button
-                type="button"
-                className="ts-no-print px-3 py-2 rounded-xl text-sm font-medium border border-neutral-700 bg-neutral-700 text-white hover:bg-neutral-600 transition"
-                onClick={next}
-              >
+              <TSButton variant="dark" onClick={next} className="w-auto px-3">
                 {L.next}
-              </button>
+              </TSButton>
             ) : (
-              <button
-                type="button"
-                className="ts-no-print px-3 py-2 rounded-xl text-sm font-medium border border-neutral-700 bg-neutral-700 text-white hover:bg-neutral-600 transition"
-                onClick={finish}
-              >
+              <TSButton variant="dark" onClick={finish} className="w-auto px-3">
                 {L.finish}
-              </button>
+              </TSButton>
             )}
           </div>
         </div>
@@ -750,7 +834,13 @@ function normalizeApp(raw) {
 // ---------------- App ----------------
 export default function App() {
   const [profile, setProfile] = useState(loadProfile());
-  const [app, setApp] = useState(() => normalizeApp(safeParse(safeStorageGet(KEY), null) ?? emptyApp()));
+
+  const [app, setApp] = useState(() => {
+    const stored = safeParse(safeStorageGet(KEY), null);
+    const normalized = normalizeApp(stored ?? emptyApp());
+    const lang = defaultLang();
+    return normalizeApp({ ...normalized, lang });
+  });
 
   const lang = app.lang;
   const L = STR[lang] || STR.EN;
@@ -778,6 +868,10 @@ export default function App() {
   }, [app]);
 
   useEffect(() => {
+    safeStorageSet(`${KEY}.lang`, app.lang);
+  }, [app.lang]);
+
+  useEffect(() => {
     safeStorageSet(PROFILE_KEY, JSON.stringify(profile));
   }, [profile]);
 
@@ -790,7 +884,9 @@ export default function App() {
 
       console.assert(typeof uid() === "string", "uid should return string");
       console.assert(safeParse('{"a":1}', null).a === 1, "safeParse should parse");
+      console.assert(safeParse("notjson", 123) === 123, "safeParse should return fallback");
       console.assert(daysUntil(todayISO()) === 0, "daysUntil(today) should be 0");
+      console.assert(daysUntil("") === null, "daysUntil(empty) should be null");
       console.assert(Array.isArray(presetSections("EN", "DE")), "presetSections should return array");
       console.assert(presetSections("EN", "DE").every((s) => !!s.key), "preset section keys should exist");
 
@@ -800,14 +896,17 @@ export default function App() {
       console.assert(norm.country === "DE" || norm.country === "WORLD", "country should be DE/WORLD");
       console.assert(Array.isArray(norm.sections), "sections should be array");
 
-      // additional tests
       console.assert(toDateLabel(todayISO(), "EN").length > 0, "toDateLabel should return a readable label");
       const norm2 = normalizeApp({ lang: "DE", country: "WORLD", sections: [{ name: "", items: [{ title: null, notes: null, due: "" }] }] });
       console.assert(norm2.country === "WORLD", "normalizeApp should keep WORLD");
       console.assert(norm2.sections[0].name === "Untitled", "empty section name should normalize to Untitled");
 
-      // localStorage safety: should not throw
+      // New tests
+      const dl = defaultLang();
+      console.assert(dl === "EN" || dl === "DE", "defaultLang should return EN/DE");
+
       safeStorageSet("__toolstack_test__", "1");
+      console.assert(safeStorageGet("__toolstack_test__") === "1", "safeStorageGet should return stored value");
       safeStorageRemove("__toolstack_test__");
     } catch {
       // ignore
@@ -980,13 +1079,37 @@ export default function App() {
     setConfirm({ open: false, kind: null, id: null, parentId: null });
   };
 
-  // Export / Import
+  // Hub
+  const openHub = () => {
+    const url = String(HUB_URL || "");
+    const isPlaceholder = !url || url.includes("YOUR-WIX-HUB-URL-HERE");
+    if (isPlaceholder) {
+      try {
+        if (typeof window !== "undefined") window.alert(L.hubMissing);
+      } catch {
+        // ignore
+      }
+      return;
+    }
+    try {
+      if (typeof window !== "undefined") window.open(url, "_blank", "noopener,noreferrer");
+    } catch {
+      // ignore
+    }
+  };
+
+  // Export / Import (Master Pack v1.1 shape)
   const exportJSON = () => {
     const payload = {
-      exportedAt: new Date().toISOString(),
-      profile,
-      data: app,
-      meta: { appId: APP_ID, version: APP_VERSION, storageKey: KEY },
+      meta: {
+        app: APP_ID,
+        version: APP_VERSION,
+        exportedAt: new Date().toISOString(),
+      },
+      data: {
+        profile,
+        app,
+      },
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -1006,11 +1129,18 @@ export default function App() {
     const parsed = safeParse(text, null);
     if (!parsed) return notify(L.invalidJson);
 
-    const incomingProfile = parsed?.profile || profile;
-    const incomingData = parsed?.data || parsed;
+    // Master format: { meta, data: { profile, app } }
+    const incomingData = parsed?.data ?? parsed;
+    const incomingProfile = incomingData?.profile ?? parsed?.profile ?? profile;
+    const incomingApp = incomingData?.app ?? incomingData?.data ?? parsed?.app ?? parsed?.data ?? parsed;
 
     setProfile(incomingProfile);
-    setApp(normalizeApp(incomingData));
+    setApp((prev) => {
+      const next = normalizeApp(incomingApp);
+      const nextLang = next.lang || prev.lang;
+      return normalizeApp({ ...next, lang: nextLang });
+    });
+
     notify(L.imported);
   };
 
@@ -1051,14 +1181,15 @@ export default function App() {
 
   const resetApp = () => {
     safeStorageRemove(KEY);
-    setApp(normalizeApp(emptyApp()));
+    safeStorageRemove(`${KEY}.lang`);
+    setApp(normalizeApp({ ...emptyApp(), lang: defaultLang() }));
     setWizardOpen(true);
   };
 
   // Preview / Print
   const openPreview = () => setPreviewOpen(true);
 
-  const printSavePDF = () => {
+  const savePDF = () => {
     setPreviewOpen(true);
     setTimeout(() => {
       try {
@@ -1070,7 +1201,13 @@ export default function App() {
   };
 
   // ---------------- Print rules ----------------
-  // IMPORTANT: no escaped selectors here — we use .ts-no-print for print-hiding.
+  const tsVars = `
+    :root {
+      --ts-accent: #D5FF00;
+      --ts-accent-rgb: 213 255 0;
+    }
+  `;
+
   const printStyles = `
     @media print {
       body { background: white !important; }
@@ -1083,16 +1220,16 @@ export default function App() {
     ? `
       @media print {
         body * { visibility: hidden !important; }
-        #addressit-print, #addressit-print * { visibility: visible !important; }
-        #addressit-print { position: absolute !important; left: 0; top: 0; width: 100%; }
+        #addressit-print-preview, #addressit-print-preview * { visibility: visible !important; }
+        #addressit-print-preview { position: absolute !important; left: 0; top: 0; width: 100%; }
       }
     `
     : "";
 
   // ---------------- Render ----------------
-
   return (
     <div className="min-h-screen bg-neutral-50 text-neutral-800">
+      <style>{tsVars}</style>
       <style>{printStyles}</style>
       {previewOpen ? <style>{printPreviewOnly}</style> : null}
 
@@ -1143,7 +1280,7 @@ export default function App() {
         onFinish={applyWizard}
       />
 
-      <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} appName="Address-It" storageKey={KEY} lang={lang} />
+      <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} onReset={resetApp} appName="Address-It" storageKey={KEY} lang={lang} />
 
       <PreviewModal
         open={previewOpen}
@@ -1157,7 +1294,7 @@ export default function App() {
           }
         }}
       >
-        <div id="addressit-print" className="p-6">
+        <div id="addressit-print-preview" className="p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="text-2xl font-bold tracking-tight text-neutral-800">{profile.org || "ToolStack"}</div>
@@ -1165,7 +1302,7 @@ export default function App() {
                 {L.reportTitle} • {app.country === "DE" ? L.germany : L.worldwide}
               </div>
               {profile.user ? <div className="text-sm text-neutral-700">Prepared by: {profile.user}</div> : null}
-              <div className="mt-3 h-[2px] w-72 rounded-full bg-gradient-to-r from-lime-400/0 via-lime-400 to-emerald-400/0" />
+              <div className="mt-3 h-[2px] w-72 rounded-full bg-[var(--ts-accent)]" />
             </div>
             <div className="text-sm text-neutral-700">
               {L.generated}: {new Date().toLocaleString(lang === "DE" ? "de-DE" : undefined)}
@@ -1242,145 +1379,143 @@ export default function App() {
           <div>
             <div className="text-4xl sm:text-5xl font-black tracking-tight text-neutral-700">
               <span>Address</span>
-              <span className="text-[#D5FF00]">It</span>
+              <span className="text-[var(--ts-accent)]">It</span>
             </div>
             <div className="text-sm text-neutral-700">{L.tagline}</div>
-            <div className="mt-3 h-[2px] w-80 rounded-full bg-gradient-to-r from-lime-400/0 via-lime-400 to-emerald-400/0" />
-
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Pill tone="accent">{app.country === "DE" ? L.germany : L.worldwide}</Pill>
-              <Pill>
-                {L.progress}: {totals.progressPct}%
-              </Pill>
-              <Pill>
-                {L.total}: {totals.total}
-              </Pill>
-              <Pill tone="ok">
-                {L.done}: {totals.done}
-              </Pill>
-              <Pill tone="warn">
-                {L.dueSoon}: {totals.dueSoon}
-              </Pill>
-              <Pill>
-                {L.missingRec}: {totals.missingRecommendedCount}
-              </Pill>
-            </div>
+            <div className="mt-3 h-[2px] w-80 rounded-full bg-[var(--ts-accent)]" />
           </div>
 
-          {/* Top menu (inline with heading, master-style) */}
+          {/* Top menu (Master Pack v1.1) */}
           <div className="w-full sm:w-[680px]">
             <div className="relative">
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 pr-32">
-                <ActionButton onClick={openPreview} disabled={totals.total === 0} title={L.preview}>
+              <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 pr-12">
+                <TSButton onClick={openHub} title={L.hub}>
+                  {L.hub}
+                </TSButton>
+                <TSButton onClick={openPreview} disabled={totals.total === 0} title={L.preview}>
                   {L.preview}
-                </ActionButton>
-                <ActionButton onClick={printSavePDF} disabled={totals.total === 0} title={L.printPdf}>
-                  {L.printPdf}
-                </ActionButton>
-                <ActionButton onClick={exportJSON} title={L.export}>
+                </TSButton>
+                <TSButton onClick={savePDF} disabled={totals.total === 0} title={L.savePdf}>
+                  {L.savePdf}
+                </TSButton>
+                <TSButton onClick={exportJSON} title={L.export}>
                   {L.export}
-                </ActionButton>
-                <ActionFileButton
+                </TSButton>
+                <TSFileButton
                   onFile={(f) => {
                     if (!f) return;
                     setImportConfirm({ open: true, file: f });
                   }}
-                  tone="primary"
                   title={lang === "DE" ? "JSON Backup importieren (ersetzt Daten)" : "Import JSON backup (replaces data)"}
                 >
                   {L.import}
-                </ActionFileButton>
+                </TSFileButton>
+                <TSButton onClick={() => setHelpOpen(true)} title={L.help}>
+                  {L.help}
+                </TSButton>
               </div>
 
-              {/* Pinned right controls */}
-              <div className="absolute right-0 top-0 flex items-center gap-2">
-                <select
-                  className="ts-no-print h-10 w-[72px] rounded-xl border border-neutral-200 bg-white px-2 text-sm text-neutral-700 shadow-sm"
-                  value={app.lang}
-                  onChange={(e) => setApp((a) => ({ ...a, lang: e.target.value === "DE" ? "DE" : "EN" }))}
-                  aria-label="Language"
-                  title="Language"
-                >
-                  <option value="EN">EN</option>
-                  <option value="DE">DE</option>
-                </select>
+              {/* Pinned help icon */}
+              <div className="absolute right-0 top-0">
                 <HelpIconButton onClick={() => setHelpOpen(true)} title={L.help} />
               </div>
             </div>
 
-            {/* Secondary actions */}
+            {/* Secondary actions (app-specific) */}
             <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
-              <ActionButton onClick={openWizard}>{L.setup}</ActionButton>
-              <ActionButton onClick={exportCSV}>{L.csv}</ActionButton>
-              <ActionButton tone="danger" onClick={resetApp} title={lang === "DE" ? "Alles löschen" : "Clear all"}>
+              <TSButton onClick={openWizard}>{L.setup}</TSButton>
+              <TSButton onClick={exportCSV}>{L.csv}</TSButton>
+              <TSButton
+                variant="danger"
+                onClick={() => {
+                  try {
+                    const ok = typeof window !== "undefined" ? window.confirm(lang === "DE" ? "Alles löschen?" : "Clear all?") : true;
+                    if (!ok) return;
+                  } catch {
+                    // ignore
+                  }
+                  resetApp();
+                }}
+                title={lang === "DE" ? "Alles löschen" : "Clear all"}
+              >
                 {L.reset}
-              </ActionButton>
+              </TSButton>
             </div>
           </div>
         </div>
 
         <div className="mt-5 grid grid-cols-1 lg:grid-cols-3 gap-3">
           {/* Left: Preset section picker */}
-          <div className={card}>
-            <div className={`${cardHead} flex items-center justify-between gap-3`}>
-              <div className="font-semibold text-neutral-800">{L.sections}</div>
-              <button
-                type="button"
-                className="ts-no-print px-3 py-2 rounded-xl text-sm font-medium border border-neutral-200 bg-white shadow-sm hover:bg-neutral-50 active:translate-y-[1px] transition"
-                onClick={addCustomSection}
-              >
-                {L.addSection}
-              </button>
+          <div className="space-y-2">
+            {/* Language toggle under main heading and above Sections */}
+            <div className="ts-no-print flex justify-end">
+              <LanguageToggle
+                lang={app.lang === "DE" ? "de" : "en"}
+                setLang={(next) => {
+                  setApp((a) => ({ ...a, lang: next === "de" ? "DE" : "EN" }));
+                }}
+              />
             </div>
-            <div className={`${cardPad} space-y-3`}>
-              <div>
-                <label className="text-sm font-medium text-neutral-700">{L.country}</label>
-                <select
-                  className={`${inputBase} mt-2`}
-                  value={app.country}
-                  onChange={(e) => setApp((a) => ({ ...a, country: e.target.value === "WORLD" ? "WORLD" : "DE" }))}
+
+            <div className={card}>
+              <div className={`${cardHead} flex items-center justify-between gap-3`}>
+                <div className="font-semibold text-neutral-800">{L.sections}</div>
+                <button
+                  type="button"
+                  className="ts-no-print px-3 py-2 rounded-xl text-sm font-medium border border-neutral-200 bg-white shadow-sm hover:bg-[rgb(var(--ts-accent-rgb)/0.25)] hover:border-[var(--ts-accent)] active:translate-y-[1px] transition"
+                  onClick={addCustomSection}
                 >
-                  <option value="DE">{L.germany}</option>
-                  <option value="WORLD">{L.worldwide}</option>
-                </select>
+                  {L.addSection}
+                </button>
               </div>
+              <div className={`${cardPad} space-y-3`}>
+                <div>
+                  <label className="text-sm font-medium text-neutral-700">{L.country}</label>
+                  <select
+                    className={`${inputBase} mt-2`}
+                    value={app.country}
+                    onChange={(e) => setApp((a) => ({ ...a, country: e.target.value === "WORLD" ? "WORLD" : "DE" }))}
+                  >
+                    <option value="DE">{L.germany}</option>
+                    <option value="WORLD">{L.worldwide}</option>
+                  </select>
+                </div>
 
-              <div className="rounded-2xl border border-neutral-200 p-4">
-                <div className="text-sm font-semibold text-neutral-800">{lang === "DE" ? "Preset-Bereiche" : "Preset sections"}</div>
-                <div className="mt-2 space-y-2">
-                  {presets.map((p) => {
-                    const exists = app.sections.some((s) => s.key === p.key);
-                    return (
-                      <div key={p.key} className="flex items-center justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="text-sm font-medium text-neutral-800 truncate">{p.name}</div>
-                          <div className="text-xs text-neutral-600 truncate">{(p.items || []).slice(0, 2).join(" • ")}</div>
+                <div className="rounded-2xl border border-neutral-200 p-4">
+                  <div className="text-sm font-semibold text-neutral-800">{lang === "DE" ? "Preset-Bereiche" : "Preset sections"}</div>
+                  <div className="mt-2 space-y-2">
+                    {presets.map((p) => {
+                      const exists = app.sections.some((s) => s.key === p.key);
+                      return (
+                        <div key={p.key} className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium text-neutral-800 truncate">{p.name}</div>
+                            <div className="text-xs text-neutral-600 truncate">{(p.items || []).slice(0, 2).join(" • ")}</div>
+                          </div>
+                          <button
+                            type="button"
+                            disabled={exists}
+                            className={
+                              "ts-no-print h-10 px-3 rounded-xl text-sm font-medium border shadow-sm transition focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ts-accent-rgb)/0.25)] " +
+                              (exists
+                                ? "border-neutral-200 bg-neutral-100 text-neutral-400 cursor-not-allowed"
+                                : "border-neutral-200 bg-white text-neutral-800 hover:bg-[rgb(var(--ts-accent-rgb)/0.25)] hover:border-[var(--ts-accent)]")
+                            }
+                            onClick={() => addSectionFromPreset(p.key)}
+                          >
+                            {exists ? "✓" : L.include}
+                          </button>
                         </div>
-                        <button
-                          type="button"
-                          disabled={exists}
-                          className={
-                            "ts-no-print h-10 px-3 rounded-xl text-sm font-medium border shadow-sm transition " +
-                            (exists
-                              ? "border-neutral-200 bg-neutral-100 text-neutral-400 cursor-not-allowed"
-                              : "border-neutral-700 bg-neutral-700 text-white hover:bg-neutral-600")
-                          }
-                          onClick={() => addSectionFromPreset(p.key)}
-                        >
-                          {exists ? "✓" : L.include}
-                        </button>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-3 text-xs text-neutral-600">{lang === "DE" ? "Tipp: Setup fügt mehrere Bereiche auf einmal hinzu." : "Tip: Setup adds multiple sections at once."}</div>
                 </div>
 
-                <div className="mt-3 text-xs text-neutral-600">
-                  {lang === "DE" ? "Tipp: Setup fügt mehrere Bereiche auf einmal hinzu." : "Tip: Setup adds multiple sections at once."}
+                <div className="text-xs text-neutral-600">
+                  Stored at <span className="font-mono">{KEY}</span> • Profile at <span className="font-mono">{PROFILE_KEY}</span>
                 </div>
-              </div>
-
-              <div className="text-xs text-neutral-600">
-                Stored at <span className="font-mono">{KEY}</span> • Profile at <span className="font-mono">{PROFILE_KEY}</span>
               </div>
             </div>
           </div>
@@ -1410,11 +1545,11 @@ export default function App() {
                     <div className="min-w-0 flex-1">
                       <input
                         className={
-                          "w-full bg-transparent text-lg font-semibold text-neutral-800 focus:outline-none " +
-                          "focus:ring-2 focus:ring-lime-400/25 rounded-xl px-2 py-1"
+                          "w-full bg-transparent text-lg font-semibold text-neutral-800 focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ts-accent-rgb)/0.25)] focus:border-[var(--ts-accent)] rounded-xl px-2 py-1"
                         }
                         value={s.name}
                         onChange={(e) => renameSection(s.id, e.target.value)}
+                        onFocus={selectAllOnFocus}
                       />
                       <div className="mt-1 flex flex-wrap gap-2 px-2">
                         <Pill>
@@ -1433,7 +1568,7 @@ export default function App() {
                       {s.key ? (
                         <button
                           type="button"
-                          className="ts-no-print px-3 py-2 rounded-xl text-sm font-medium border border-neutral-200 bg-white shadow-sm hover:bg-neutral-50 active:translate-y-[1px] transition"
+                          className="ts-no-print px-3 py-2 rounded-xl text-sm font-medium border border-neutral-200 bg-white shadow-sm hover:bg-[rgb(var(--ts-accent-rgb)/0.25)] hover:border-[var(--ts-accent)] active:translate-y-[1px] transition"
                           onClick={() => addSuggestedMissing(s.id)}
                         >
                           {L.addSuggested}
@@ -1442,7 +1577,7 @@ export default function App() {
 
                       <button
                         type="button"
-                        className="ts-no-print px-3 py-2 rounded-xl text-sm font-medium border border-neutral-700 bg-neutral-700 text-white shadow-sm hover:bg-neutral-600 active:translate-y-[1px] transition"
+                        className="ts-no-print px-3 py-2 rounded-xl text-sm font-medium border border-neutral-200 bg-white text-neutral-800 shadow-sm hover:bg-[rgb(var(--ts-accent-rgb)/0.25)] hover:border-[var(--ts-accent)] active:translate-y-[1px] transition"
                         onClick={() => addItem(s.id)}
                       >
                         {L.addItem}
@@ -1486,12 +1621,12 @@ export default function App() {
                                 <div className="min-w-0 flex-1">
                                   <input
                                     className={
-                                      "w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm " +
-                                      "focus:outline-none focus:ring-2 focus:ring-lime-400/25 focus:border-neutral-300 " +
+                                      "w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ts-accent-rgb)/0.25)] focus:border-[var(--ts-accent)] " +
                                       (it.done ? "line-through text-neutral-400" : "text-neutral-800")
                                     }
                                     value={it.title}
                                     onChange={(e) => updateItem(s.id, it.id, { title: e.target.value })}
+                                    onFocus={selectAllOnFocus}
                                     placeholder={lang === "DE" ? "Titel…" : "Title…"}
                                   />
 
@@ -1499,6 +1634,7 @@ export default function App() {
                                     className={`${inputBase} mt-2 min-h-[110px] whitespace-pre-wrap`}
                                     value={it.notes}
                                     onChange={(e) => updateItem(s.id, it.id, { notes: e.target.value })}
+                                    onFocus={selectAllOnFocus}
                                     placeholder={`${L.notes} (${L.optional})`}
                                   />
                                 </div>
@@ -1522,7 +1658,7 @@ export default function App() {
 
                                 <button
                                   type="button"
-                                  className="ts-no-print w-full px-3 py-2 rounded-xl text-sm font-medium border border-neutral-200 bg-white shadow-sm hover:bg-neutral-50 active:translate-y-[1px] transition"
+                                  className="ts-no-print w-full px-3 py-2 rounded-xl text-sm font-medium border border-neutral-200 bg-white shadow-sm hover:bg-[rgb(var(--ts-accent-rgb)/0.25)] hover:border-[var(--ts-accent)] active:translate-y-[1px] transition"
                                   onClick={() => {
                                     try {
                                       const txt = `${it.title}\n\n${it.notes || ""}`.trim();
@@ -1566,13 +1702,6 @@ export default function App() {
                 </div>
               );
             })}
-
-            {/* Footer link */}
-            <div className="mt-6 text-sm text-neutral-700 ts-no-print">
-              <a className="underline hover:text-neutral-800" href={HUB_URL} target="_blank" rel="noreferrer">
-                Return to ToolStack hub
-              </a>
-            </div>
           </div>
         </div>
 
