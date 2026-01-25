@@ -1,8 +1,10 @@
 // Address-It (ToolStack) — Address change checklist manager (MVP)
 // Paste into: src/App.jsx
 // Requires: Tailwind v4 configured.
+// UPDATE: Added "Ummeldung / Bürgerbüro" module for Germany-specific steps.
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import addressItHeading from "./assets/addressit-heading.png";
 
 // ----- Module-ready keys -----
 const APP_ID = "addressit";
@@ -183,6 +185,28 @@ const STR = {
     generated: "Generated",
     hub: "Hub",
     hubMissing: "Hub URL not set. Update HUB_URL in App.jsx.",
+    addressProfile: "Address Profile",
+    personalDetails: "Personal Details",
+    fullName: "Full Name",
+    email: "Email",
+    phone: "Phone",
+    effectiveDate: "Effective Date",
+    oldAddress: "Old Address",
+    newAddress: "New Address",
+    street: "Street",
+    houseNo: "House No.",
+    postalCode: "Postal Code",
+    city: "City",
+    state: "State / Region",
+    copyNewAddress: "Copy New Address",
+    copyOldAddress: "Copy Old Address",
+    copyBoth: "Copy Both (Old → New)",
+    autofillPack: "Auto-fill Pack",
+    autofillIntro: "Use your profile to generate copy-paste text for your notifications.",
+    autofillWarning: "Please fill in your full name and new address in the profile above to generate templates.",
+    shortEmail: "Short Email",
+    formalLetter: "Formal Letter",
+    formSnippet: "Form Snippet",
   },
   DE: {
     tagline: "Adressänderung beim Umzug organisieren",
@@ -238,6 +262,28 @@ const STR = {
     generated: "Erstellt",
     hub: "Hub",
     hubMissing: "Hub-URL nicht gesetzt. Bitte HUB_URL in App.jsx aktualisieren.",
+    addressProfile: "Adressprofil",
+    personalDetails: "Persönliche Daten",
+    fullName: "Vollständiger Name",
+    email: "E-Mail",
+    phone: "Telefon",
+    effectiveDate: "Gültig ab",
+    oldAddress: "Alte Adresse",
+    newAddress: "Neue Adresse",
+    street: "Straße",
+    houseNo: "Hausnr.",
+    postalCode: "PLZ",
+    city: "Stadt",
+    state: "Bundesland / Region",
+    copyNewAddress: "Neue Adresse kopieren",
+    copyOldAddress: "Alte Adresse kopieren",
+    copyBoth: "Beide kopieren (Alt → Neu)",
+    autofillPack: "Ausfüll-Hilfen",
+    autofillIntro: "Nutze dein Profil, um Textvorlagen für deine Mitteilungen zu erstellen.",
+    autofillWarning: "Bitte fülle deinen Namen und deine neue Adresse im Profil oben aus, um Vorlagen zu erstellen.",
+    shortEmail: "Kurze E-Mail",
+    formalLetter: "Formeller Brief",
+    formSnippet: "Formular-Auszug",
   },
 };
 
@@ -451,9 +497,33 @@ function Pill({ children, tone = "default" }) {
       : tone === "warn"
       ? "border-amber-200 bg-amber-50 text-neutral-800"
       : tone === "ok"
-      ? "border-emerald-200 bg-emerald-50 text-neutral-800"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
       : "border-neutral-200 bg-white text-neutral-800";
   return <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${cls}`}>{children}</span>;
+}
+
+function DashboardMetric({ label, value, tone = "neutral", onClick, active }) {
+  const base = "flex flex-col px-3 py-2 rounded-xl border transition select-none min-w-[90px] ";
+  const cursor = onClick ? "cursor-pointer active:scale-95 " : "";
+
+  let colors = "bg-neutral-50 border-neutral-100 text-neutral-800 hover:border-neutral-300";
+  if (tone === "danger") colors = "bg-red-50 border-red-100 text-red-900 hover:border-red-300";
+  if (tone === "warn") colors = "bg-amber-50 border-amber-100 text-amber-900 hover:border-amber-300";
+  if (tone === "ok") colors = "bg-emerald-50 border-emerald-100 text-emerald-900 hover:border-emerald-300";
+
+  if (active) {
+    if (tone === "neutral") colors = "bg-neutral-100 border-neutral-400 text-neutral-900";
+    if (tone === "danger") colors = "bg-red-100 border-red-400 text-red-900";
+    if (tone === "warn") colors = "bg-amber-100 border-amber-400 text-amber-900";
+    if (tone === "ok") colors = "bg-emerald-100 border-emerald-400 text-emerald-900";
+  }
+
+  return (
+    <div className={base + cursor + colors} onClick={onClick} role={onClick ? "button" : undefined}>
+      <div className="text-xs font-medium opacity-70">{label}</div>
+      <div className="text-xl font-bold leading-tight mt-0.5">{value}</div>
+    </div>
+  );
 }
 
 function ConfirmModal({ open, title, message, confirmText = "Delete", cancelText = "Cancel", onConfirm, onCancel }) {
@@ -785,14 +855,307 @@ function WizardModal({ open, onClose, lang, draft, setDraft, onFinish }) {
   );
 }
 
+function DataModal({ open, onClose, onExportJSON, onImportJSON, onExportCSV, lang }) {
+  if (!open) return null;
+  const L = STR[lang] || STR.EN;
+
+  const ActionCard = ({ icon, title, desc, action, secondaryAction }) => (
+    <div className="group relative overflow-hidden rounded-2xl border border-neutral-200 bg-white p-5 transition-all hover:border-[var(--ts-accent)] hover:shadow-md">
+      <div className="flex items-start gap-4">
+        <div className="shrink-0 rounded-xl bg-neutral-50 p-3 text-2xl group-hover:bg-[rgb(var(--ts-accent-rgb)/0.2)] transition-colors">
+          {icon}
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-bold text-neutral-800">{title}</h3>
+          <p className="text-sm text-neutral-500 mt-1 leading-relaxed">{desc}</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {action}
+            {secondaryAction}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+      <div className="absolute inset-0 bg-neutral-900/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
+      <div className="relative w-full max-w-2xl transform overflow-hidden rounded-3xl bg-white shadow-2xl transition-all">
+        
+        {/* Header */}
+        <div className="relative overflow-hidden bg-neutral-900 px-6 py-8 text-white">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-32 w-32 rounded-full bg-[var(--ts-accent)] opacity-20 blur-3xl" />
+          <div className="absolute bottom-0 left-0 -mb-4 -ml-4 h-32 w-32 rounded-full bg-blue-500 opacity-20 blur-3xl" />
+          
+          <div className="relative flex items-start justify-between">
+            <div>
+              <h2 className="text-2xl font-black tracking-tight">
+                {lang === "DE" ? "Daten & Export" : "Data & Export"}
+              </h2>
+              <p className="mt-2 text-neutral-400 max-w-sm">
+                {lang === "DE" 
+                  ? "Sichere deine Fortschritte oder exportiere sie für andere Apps." 
+                  : "Secure your progress or export for other tools."}
+              </p>
+            </div>
+            <button 
+              onClick={onClose}
+              className="rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition-colors"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="p-6 bg-neutral-50/50 space-y-4">
+          
+          {/* JSON Backup Card */}
+          <ActionCard 
+            icon="📦"
+            title={lang === "DE" ? "Vollständiges Backup (JSON)" : "Full Backup (JSON)"}
+            desc={lang === "DE" 
+              ? "Speichere den kompletten Zustand der App. Ideal für Backups oder um Daten auf ein anderes Gerät zu übertragen." 
+              : "Save the complete app state. Perfect for backups or transferring data to another device."}
+            action={
+              <TSButton variant="dark" onClick={onExportJSON} className="w-auto px-4">
+                {L.export} JSON
+              </TSButton>
+            }
+            secondaryAction={
+              <TSFileButton onFile={onImportJSON} title={lang === "DE" ? "Backup wiederherstellen" : "Restore backup"} className="w-auto px-4 bg-white border-neutral-200 text-neutral-700 hover:border-neutral-300">
+                {L.import} JSON
+              </TSFileButton>
+            }
+          />
+
+          {/* CSV Export Card */}
+          <ActionCard 
+            icon="📊"
+            title={lang === "DE" ? "Tabellen-Export (CSV)" : "Spreadsheet Export (CSV)"}
+            desc={lang === "DE" 
+              ? "Erstelle eine Liste für Excel, Numbers oder Google Sheets. Enthält nur Textdaten." 
+              : "Create a list for Excel, Numbers, or Google Sheets. Contains text data only."}
+            action={
+              <TSButton onClick={onExportCSV} className="w-auto px-4">
+                {L.csv}
+              </TSButton>
+            }
+          />
+
+        </div>
+
+        {/* Footer */}
+        <div className="bg-neutral-50 px-6 py-4 text-center border-t border-neutral-100">
+          <p className="text-xs text-neutral-400 font-medium">
+            {lang === "DE" 
+              ? "Deine Daten werden lokal in deinem Browser gespeichert. Kein Cloud-Upload." 
+              : "Your data is stored locally in your browser. No cloud upload."}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AddressInputGroup({ title, address, onUpdate, L }) {
+  return (
+    <div className="space-y-2">
+      <h4 className="text-sm font-semibold text-neutral-700">{title}</h4>
+      <div className="grid grid-cols-2 gap-2">
+        <div className="col-span-2">
+          <label className="text-xs font-medium text-neutral-600">{L.street} & {L.houseNo}</label>
+          <div className="flex gap-2">
+            <input type="text" value={address.street} onChange={e => onUpdate('street', e.target.value)} className={`${inputBase} w-2/3`} placeholder={L.street} />
+            <input type="text" value={address.houseNo} onChange={e => onUpdate('houseNo', e.target.value)} className={`${inputBase} w-1/3`} placeholder={L.houseNo} />
+          </div>
+        </div>
+        <div>
+          <label className="text-xs font-medium text-neutral-600">{L.postalCode}</label>
+          <input type="text" value={address.postalCode} onChange={e => onUpdate('postalCode', e.target.value)} className={inputBase} placeholder={L.postalCode} />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-neutral-600">{L.city}</label>
+          <input type="text" value={address.city} onChange={e => onUpdate('city', e.target.value)} className={inputBase} placeholder={L.city} />
+        </div>
+        <div className="col-span-2">
+          <label className="text-xs font-medium text-neutral-600">{L.country}</label>
+          <input type="text" value={address.country} onChange={e => onUpdate('country', e.target.value)} className={inputBase} placeholder={L.country} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AddressProfile({ profile, onUpdate, onCopy, L, collapsed, onToggleCollapse }) {
+  return (
+    <div className={card}>
+      <div className={`${cardHead} flex items-center justify-between`}>
+        <h3 className="font-semibold text-neutral-800">{L.addressProfile}</h3>
+        <button
+          type="button"
+          className="ts-no-print h-9 w-9 rounded-xl border border-neutral-200 bg-white text-neutral-500 shadow-sm hover:bg-neutral-50 hover:text-neutral-800 transition flex items-center justify-center"
+          onClick={onToggleCollapse}
+          title={collapsed ? (L.lang === "DE" ? "Ausklappen" : "Expand") : (L.lang === "DE" ? "Einklappen" : "Collapse")}
+        >
+          <svg className={`w-5 h-5 transform transition-transform ${collapsed ? "-rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+      {!collapsed && (
+        <div className={`${cardPad} space-y-4`}>
+          {/* Personal Details */}
+          <div className="space-y-2">
+            <h4 className="text-sm font-semibold text-neutral-700">{L.personalDetails}</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs font-medium text-neutral-600">{L.fullName}</label>
+                <input type="text" value={profile.fullName} onChange={e => onUpdate('fullName', e.target.value)} className={inputBase} placeholder={L.fullName} />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-neutral-600">{L.effectiveDate}</label>
+                <input type="date" value={profile.effectiveDate} onChange={e => onUpdate('effectiveDate', e.target.value)} className={inputBase} />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-neutral-600">{L.email} ({L.optional})</label>
+                <input type="email" value={profile.email} onChange={e => onUpdate('email', e.target.value)} className={inputBase} placeholder={L.email} />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-neutral-600">{L.phone} ({L.optional})</label>
+                <input type="tel" value={profile.phone} onChange={e => onUpdate('phone', e.target.value)} className={inputBase} placeholder={L.phone} />
+              </div>
+            </div>
+          </div>
+
+          <div className="h-px bg-neutral-100" />
+
+          {/* Addresses */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <AddressInputGroup title={L.oldAddress} address={profile.oldAddress} onUpdate={(field, value) => onUpdate(`oldAddress.${field}`, value)} L={L} />
+            <AddressInputGroup title={L.newAddress} address={profile.newAddress} onUpdate={(field, value) => onUpdate(`newAddress.${field}`, value)} L={L} />
+          </div>
+          
+          <div className="h-px bg-neutral-100" />
+
+          {/* Copy Buttons */}
+          <div className="flex flex-wrap gap-2">
+            <TSButton onClick={() => onCopy('old')} className="flex-1">{L.copyOldAddress}</TSButton>
+            <TSButton onClick={() => onCopy('new')} className="flex-1">{L.copyNewAddress}</TSButton>
+            <TSButton onClick={() => onCopy('both')} className="flex-1">{L.copyBoth}</TSButton>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AutofillPack({ profile, lang, onCopy, L, formatAddress, collapsed, onToggleCollapse }) {
+  const canGenerate = profile.fullName && profile.newAddress.street && profile.newAddress.city;
+
+  const oldAddr = formatAddress(profile.oldAddress);
+  const newAddr = formatAddress(profile.newAddress);
+  const effectiveDateText = profile.effectiveDate 
+    ? (lang === 'DE' ? `\nMeine neue Adresse ist gültig ab dem ${toDateLabel(profile.effectiveDate, lang)}.` : `\nMy new address is effective from ${toDateLabel(profile.effectiveDate, lang)}.`)
+    : '';
+
+  const templates = {
+    shortEmail: {
+      title: L.shortEmail,
+      text: lang === 'DE' 
+        ? `Sehr geehrte Damen und Herren,\n\nhiermit teile ich Ihnen meine neue Anschrift mit:\n\n${newAddr}${effectiveDateText}\n\nMit freundlichen Grüßen\n${profile.fullName}`
+        : `Dear Sir/Madam,\n\nPlease update my address in your records to the following:\n\n${newAddr}${effectiveDateText}\n\nSincerely,\n${profile.fullName}`
+    },
+    formalLetter: {
+      title: L.formalLetter,
+      text: lang === 'DE'
+        ? `${profile.fullName}\n${oldAddr}\n\n[Name/Anschrift des Empfängers]\n\n${toDateLabel(todayISO(), lang)}\n\nAdressänderung\n\nSehr geehrte Damen und Herren,\n\nhiermit teile ich Ihnen mit, dass sich meine Anschrift geändert hat. Meine neue Adresse lautet:\n\n${newAddr}${effectiveDateText}\n\nIch bitte Sie, diese Änderung in Ihren Unterlagen zu vermerken.\n\nMit freundlichen Grüßen\n${profile.fullName}`
+        : `${profile.fullName}\n${oldAddr}\n\n[Recipient Name/Address]\n\n${toDateLabel(todayISO(), lang)}\n\nChange of Address Notification\n\nDear Sir/Madam,\n\nThis letter is to inform you of my change of address. My new address is:\n\n${newAddr}${effectiveDateText}\n\nPlease update your records accordingly.\n\nSincerely,\n${profile.fullName}`
+    },
+    formSnippet: {
+      title: L.formSnippet,
+      text: [
+        `${L.fullName}: ${profile.fullName}`,
+        `${L.oldAddress}:\n${oldAddr}`,
+        `${L.newAddress}:\n${newAddr}`,
+        profile.effectiveDate ? `${L.effectiveDate}: ${toDateLabel(profile.effectiveDate, lang)}` : null
+      ].filter(Boolean).join('\n\n')
+    }
+  };
+
+  return (
+    <div className={card}>
+      <div className={`${cardHead} flex items-center justify-between`}>
+        <div>
+          <h3 className="font-semibold text-neutral-800">{L.autofillPack}</h3>
+          <p className="text-xs text-neutral-500">{L.autofillIntro}</p>
+        </div>
+        <button
+          type="button"
+          className="ts-no-print h-9 w-9 rounded-xl border border-neutral-200 bg-white text-neutral-500 shadow-sm hover:bg-neutral-50 hover:text-neutral-800 transition flex items-center justify-center"
+          onClick={onToggleCollapse}
+          title={collapsed ? (L.lang === "DE" ? "Ausklappen" : "Expand") : (L.lang === "DE" ? "Einklappen" : "Collapse")}
+        >
+          <svg className={`w-5 h-5 transform transition-transform ${collapsed ? "-rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+      {!collapsed && (
+        <div className={`${cardPad} space-y-4`}>
+          {!canGenerate ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              {L.autofillWarning}
+            </div>
+          ) : (
+            Object.values(templates).map(template => (
+              <div key={template.title}>
+                <div className="flex justify-between items-center mb-1">
+                  <h4 className="text-sm font-semibold text-neutral-700">{template.title}</h4>
+                  <TSButton onClick={() => onCopy(template.text)} className="h-8 w-auto px-3 text-xs">{L.copy}</TSButton>
+                </div>
+                <textarea
+                  readOnly
+                  value={template.text}
+                  className={`${inputBase} min-h-[150px] bg-neutral-50/70 whitespace-pre-wrap font-mono text-xs`}
+                />
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---------------- Data model ----------------
 function emptyApp() {
   return {
     lang: "EN",
     country: "DE", // DE | WORLD
+    deUmmeldung: {
+      ummeldungDone: false,
+      appointmentDateTime: "",
+      cityGemeinde: "",
+      wohnungsgeberbestaetigungReceived: false,
+      notes: "",
+    },
+    addressProfile: {
+      fullName: "",
+      email: "",
+      phone: "",
+      effectiveDate: "",
+      oldAddress: { street: "", houseNo: "", postalCode: "", city: "", state: "", country: "" },
+      newAddress: { street: "", houseNo: "", postalCode: "", city: "", state: "", country: "" },
+    },
     sections: [], // {id,key?,name,items:[]}
     ui: {
       hideDone: false,
+      deUmmeldungCollapsed: false,
+      addressProfileCollapsed: false,
+      autofillPackCollapsed: false,
     },
   };
 }
@@ -808,6 +1171,7 @@ function normalizeApp(raw) {
       id: s.id || uid(),
       key: s.key || null,
       name: String(s.name ?? "").trim() || "Untitled",
+      collapsed: !!s.collapsed,
       items: items.map((it) => ({
         id: it.id || uid(),
         title: String(it.title ?? "").trim(),
@@ -819,14 +1183,40 @@ function normalizeApp(raw) {
     };
   });
 
+  const defaultAddress = { street: "", houseNo: "", postalCode: "", city: "", state: "", country: "" };
+  const rawProfile = a.addressProfile || {};
+  const normProfile = {
+    fullName: String(rawProfile.fullName || ""),
+    email: String(rawProfile.email || ""),
+    phone: String(rawProfile.phone || ""),
+    effectiveDate: String(rawProfile.effectiveDate || ""),
+    oldAddress: { ...defaultAddress, ...(rawProfile.oldAddress || {}) },
+    newAddress: { ...defaultAddress, ...(rawProfile.newAddress || {}) },
+  };
+
+  const defaultUmmeldung = {
+    ummeldungDone: false,
+    appointmentDateTime: "",
+    cityGemeinde: "",
+    wohnungsgeberbestaetigungReceived: false,
+    notes: "",
+  };
+  const rawUmmeldung = a.deUmmeldung || {};
+  const normUmmeldung = { ...defaultUmmeldung, ...rawUmmeldung };
+
   return {
     ...base,
     ...a,
     lang: a.lang === "DE" ? "DE" : "EN",
     country: a.country === "WORLD" ? "WORLD" : "DE",
+    deUmmeldung: normUmmeldung,
+    addressProfile: normProfile,
     sections: normSections,
     ui: {
       hideDone: !!a.ui?.hideDone,
+      deUmmeldungCollapsed: !!a.ui?.deUmmeldungCollapsed,
+      addressProfileCollapsed: !!a.ui?.addressProfileCollapsed,
+      autofillPackCollapsed: !!a.ui?.autofillPackCollapsed,
     },
   };
 }
@@ -855,9 +1245,11 @@ export default function App() {
 
   const [helpOpen, setHelpOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [dataModalOpen, setDataModalOpen] = useState(false);
 
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardDraft, setWizardDraft] = useState({ country: app.country, selectedKeys: [] });
+  const [filterMode, setFilterMode] = useState(null); // null | 'overdue' | 'dueSoon' | 'suggested'
 
   const [confirm, setConfirm] = useState({ open: false, kind: null, id: null, parentId: null });
   const [importConfirm, setImportConfirm] = useState({ open: false, file: null });
@@ -926,12 +1318,19 @@ export default function App() {
     const allItems = app.sections.flatMap((s) => s.items || []);
     const total = allItems.length;
     const done = allItems.filter((i) => i.done).length;
+    const remaining = total - done;
     const progressPct = total ? Math.round((done / total) * 100) : 0;
 
     const dueSoon = allItems.filter((i) => {
       if (i.done) return false;
       const d = daysUntil(i.due);
       return d != null && d >= 0 && d <= 7;
+    }).length;
+
+    const overdue = allItems.filter((i) => {
+      if (i.done) return false;
+      const d = daysUntil(i.due);
+      return d != null && d < 0;
     }).length;
 
     const recommendedPresets = presets.filter((p) => p.recommended);
@@ -951,8 +1350,11 @@ export default function App() {
       }
     }
 
-    return { total, done, progressPct, dueSoon, missingRecommendedCount };
-  }, [app.sections, presets]);
+    const suggestedRemaining = allItems.filter((i) => !i.done && i.isSuggested).length;
+    const ummeldungStatus = app.deUmmeldung.ummeldungDone ? 'Done' : 'Pending';
+
+    return { total, done, remaining, progressPct, dueSoon, overdue, suggestedRemaining, missingRecommendedCount, ummeldungStatus };
+  }, [app.sections, app.deUmmeldung, presets]);
 
   // ---------------- Actions ----------------
   const openWizard = () => {
@@ -1079,6 +1481,73 @@ export default function App() {
     setConfirm({ open: false, kind: null, id: null, parentId: null });
   };
 
+  const toggleSectionCollapse = (sectionId) => {
+    setApp((a) => {
+      const next = a.sections.map((s) => (s.id === sectionId ? { ...s, collapsed: !s.collapsed } : s));
+      return { ...a, sections: next };
+    });
+  };
+
+  const toggleUmmeldungCollapse = () => setApp(a => ({ ...a, ui: { ...a.ui, deUmmeldungCollapsed: !a.ui.deUmmeldungCollapsed } }));
+  const toggleAddressProfileCollapse = () => setApp(a => ({ ...a, ui: { ...a.ui, addressProfileCollapsed: !a.ui.addressProfileCollapsed } }));
+  const toggleAutofillPackCollapse = () => setApp(a => ({ ...a, ui: { ...a.ui, autofillPackCollapsed: !a.ui.autofillPackCollapsed } }));
+
+  const updateAddressProfile = (path, value) => {
+    setApp(a => {
+        const profile = a.addressProfile;
+        const keys = path.split('.');
+        if (keys.length === 1) {
+            return { ...a, addressProfile: { ...profile, [keys[0]]: value } };
+        }
+        if (keys.length === 2) {
+            return {
+                ...a,
+                addressProfile: {
+                    ...profile,
+                    [keys[0]]: { ...profile[keys[0]], [keys[1]]: value }
+                }
+            };
+        }
+        return a;
+    });
+  };
+
+  const formatAddress = (addr) => {
+    if (!addr.street && !addr.city) return "";
+    const line1 = `${addr.street} ${addr.houseNo}`.trim();
+    const line2 = `${addr.postalCode} ${addr.city}`.trim();
+    const line3 = `${addr.state}`.trim();
+    const line4 = `${addr.country}`.trim();
+    return [line1, line2, line3, line4].filter(Boolean).join('\n');
+  }
+
+  const copyAddress = (type) => {
+    const p = app.addressProfile;
+    let textToCopy = "";
+    const oldAddrText = formatAddress(p.oldAddress);
+    const newAddrText = formatAddress(p.newAddress);
+
+    if (type === 'old') {
+        textToCopy = oldAddrText;
+    } else if (type === 'new') {
+        textToCopy = newAddrText;
+    } else if (type === 'both') {
+        textToCopy = `${lang === 'DE' ? 'Alte Adresse:\n' : 'Old Address:\n'}${oldAddrText}\n\n${lang === 'DE' ? 'Neue Adresse:\n' : 'New Address:\n'}${newAddrText}`;
+    }
+    
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(textToCopy.trim());
+        notify(L.copied);
+    }
+  };
+
+  const copyToClipboard = (text) => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      notify(L.copied);
+    }
+  };
+
   // Hub
   const openHub = () => {
     const url = String(HUB_URL || "");
@@ -1189,17 +1658,6 @@ export default function App() {
   // Preview / Print
   const openPreview = () => setPreviewOpen(true);
 
-  const savePDF = () => {
-    setPreviewOpen(true);
-    setTimeout(() => {
-      try {
-        if (typeof window !== "undefined") window.print();
-      } catch {
-        // ignore
-      }
-    }, 250);
-  };
-
   // ---------------- Print rules ----------------
   const tsVars = `
     :root {
@@ -1281,6 +1739,19 @@ export default function App() {
       />
 
       <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} onReset={resetApp} appName="Address-It" storageKey={KEY} lang={lang} />
+
+      <DataModal
+        open={dataModalOpen}
+        onClose={() => setDataModalOpen(false)}
+        onExportJSON={exportJSON}
+        onImportJSON={(f) => {
+          if (!f) return;
+          setImportConfirm({ open: true, file: f });
+          setDataModalOpen(false);
+        }}
+        onExportCSV={exportCSV}
+        lang={lang}
+      />
 
       <PreviewModal
         open={previewOpen}
@@ -1376,42 +1847,24 @@ export default function App() {
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
         {/* MAIN HEADING */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <div className="text-4xl sm:text-5xl font-black tracking-tight text-neutral-700">
-              <span>Address</span>
-              <span className="text-[var(--ts-accent)]">It</span>
-            </div>
-            <div className="text-sm text-neutral-700">{L.tagline}</div>
-            <div className="mt-3 h-[2px] w-80 rounded-full bg-[var(--ts-accent)]" />
-          </div>
+          <img
+            src={addressItHeading}
+            alt="AddressIt"
+            className="h-[150px] sm:h-[188px] w-auto max-w-full object-contain mb-2"
+          />
 
           {/* Top menu (Master Pack v1.1) */}
-          <div className="w-full sm:w-[680px]">
+          <div className="w-full sm:w-[510px]">
             <div className="relative">
-              <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 pr-12">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pr-12">
                 <TSButton onClick={openHub} title={L.hub}>
                   {L.hub}
                 </TSButton>
                 <TSButton onClick={openPreview} disabled={totals.total === 0} title={L.preview}>
                   {L.preview}
                 </TSButton>
-                <TSButton onClick={savePDF} disabled={totals.total === 0} title={L.savePdf}>
-                  {L.savePdf}
-                </TSButton>
-                <TSButton onClick={exportJSON} title={L.export}>
+                <TSButton onClick={() => setDataModalOpen(true)} title={L.export}>
                   {L.export}
-                </TSButton>
-                <TSFileButton
-                  onFile={(f) => {
-                    if (!f) return;
-                    setImportConfirm({ open: true, file: f });
-                  }}
-                  title={lang === "DE" ? "JSON Backup importieren (ersetzt Daten)" : "Import JSON backup (replaces data)"}
-                >
-                  {L.import}
-                </TSFileButton>
-                <TSButton onClick={() => setHelpOpen(true)} title={L.help}>
-                  {L.help}
                 </TSButton>
               </div>
 
@@ -1421,10 +1874,75 @@ export default function App() {
               </div>
             </div>
 
-            {/* Secondary actions (app-specific) */}
-            <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
-              <TSButton onClick={openWizard}>{L.setup}</TSButton>
-              <TSButton onClick={exportCSV}>{L.csv}</TSButton>
+            <div className="mt-2 flex justify-end ts-no-print">
+              <LanguageToggle
+                lang={app.lang === "DE" ? "de" : "en"}
+                setLang={(next) => {
+                  setApp((a) => ({ ...a, lang: next === "de" ? "DE" : "EN" }));
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Dashboard & Quick Actions */}
+        <div className="mt-6 mb-2 flex flex-col lg:flex-row items-stretch gap-4">
+          <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm flex-1">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-neutral-800 uppercase tracking-wider">Dashboard</h3>
+                {filterMode && (
+                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-600">
+                    Filtered
+                  </span>
+                )}
+              </div>
+              {filterMode && (
+                <button
+                  onClick={() => setFilterMode(null)}
+                  className="text-xs font-medium text-red-600 hover:text-red-700 hover:underline"
+                >
+                  Clear filter
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <DashboardMetric label={lang === "DE" ? "Erledigt" : "Done"} value={`${totals.done} / ${totals.total}`} />
+              <DashboardMetric label={lang === "DE" ? "Offen" : "Remaining"} value={totals.remaining} />
+              <DashboardMetric
+                label={lang === "DE" ? "Überfällig" : "Overdue"}
+                value={totals.overdue}
+                tone={totals.overdue > 0 ? "danger" : "neutral"}
+                onClick={() => setFilterMode((f) => (f === "overdue" ? null : "overdue"))}
+                active={filterMode === "overdue"}
+              />
+              <DashboardMetric
+                label={lang === "DE" ? "Fällig (7 Tage)" : "Due soon"}
+                value={totals.dueSoon}
+                tone="warn"
+                onClick={() => setFilterMode((f) => (f === "dueSoon" ? null : "dueSoon"))}
+                active={filterMode === "dueSoon"}
+              />
+              <DashboardMetric
+                label={lang === "DE" ? "Vorschläge" : "Suggested"}
+                value={totals.suggestedRemaining}
+                onClick={() => setFilterMode((f) => (f === "suggested" ? null : "suggested"))}
+                active={filterMode === "suggested"}
+              />
+              {app.country === 'DE' && (
+                <DashboardMetric
+                  label="Ummeldung"
+                  value={totals.ummeldungStatus}
+                  tone={totals.ummeldungStatus === 'Done' ? 'ok' : 'neutral'}
+                />
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm w-full lg:w-[350px] flex flex-col justify-center">
+            <h3 className="text-sm font-bold text-neutral-800 uppercase tracking-wider mb-3">Quick Actions</h3>
+            <div className="flex items-center gap-2">
+              <TSButton onClick={openWizard} className="w-full">{L.setup}</TSButton>
               <TSButton
                 variant="danger"
                 onClick={() => {
@@ -1437,6 +1955,7 @@ export default function App() {
                   resetApp();
                 }}
                 title={lang === "DE" ? "Alles löschen" : "Clear all"}
+                className="w-full"
               >
                 {L.reset}
               </TSButton>
@@ -1447,16 +1966,6 @@ export default function App() {
         <div className="mt-5 grid grid-cols-1 lg:grid-cols-3 gap-3">
           {/* Left: Preset section picker */}
           <div className="space-y-2">
-            {/* Language toggle under main heading and above Sections */}
-            <div className="ts-no-print flex justify-end">
-              <LanguageToggle
-                lang={app.lang === "DE" ? "de" : "en"}
-                setLang={(next) => {
-                  setApp((a) => ({ ...a, lang: next === "de" ? "DE" : "EN" }));
-                }}
-              />
-            </div>
-
             <div className={card}>
               <div className={`${cardHead} flex items-center justify-between gap-3`}>
                 <div className="font-semibold text-neutral-800">{L.sections}</div>
@@ -1522,6 +2031,25 @@ export default function App() {
 
           {/* Right: Sections + Items */}
           <div className="lg:col-span-2 space-y-3">
+            <AddressProfile 
+              profile={app.addressProfile} 
+              onUpdate={updateAddressProfile} 
+              lang={lang}
+              onCopy={copyAddress}
+              L={L}
+              collapsed={app.ui.addressProfileCollapsed}
+              onToggleCollapse={toggleAddressProfileCollapse}
+            />
+            <AutofillPack 
+              profile={app.addressProfile}
+              lang={lang}
+              onCopy={copyToClipboard}
+              L={L}
+              formatAddress={formatAddress}
+              collapsed={app.ui.autofillPackCollapsed}
+              onToggleCollapse={toggleAutofillPackCollapse}
+            />
+
             {app.sections.length === 0 ? (
               <div className={`${card} ${cardPad}`}>
                 <div className="text-sm text-neutral-700">{L.empty}</div>
@@ -1530,7 +2058,17 @@ export default function App() {
 
             {app.sections.map((s) => {
               const items = s.items || [];
-              const filtered = app.ui.hideDone ? items.filter((i) => !i.done) : items;
+              const filtered = items.filter((i) => {
+                if (app.ui.hideDone && i.done) return false;
+                if (filterMode === "overdue") return !i.done && i.due && daysUntil(i.due) < 0;
+                if (filterMode === "dueSoon") return !i.done && i.due && daysUntil(i.due) >= 0 && daysUntil(i.due) <= 7;
+                if (filterMode === "suggested") return !i.done && i.isSuggested;
+                return true;
+              });
+
+              // If filtering is active, hide empty sections to reduce clutter
+              if (filterMode && filtered.length === 0) return null;
+
               const missingSuggestedCount =
                 s.key && presetMap[s.key]
                   ? (() => {
@@ -1565,6 +2103,17 @@ export default function App() {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        className="ts-no-print h-9 w-9 rounded-xl border border-neutral-200 bg-white text-neutral-500 shadow-sm hover:bg-neutral-50 hover:text-neutral-800 transition flex items-center justify-center"
+                        onClick={() => toggleSectionCollapse(s.id)}
+                        title={s.collapsed ? (lang === "DE" ? "Ausklappen" : "Expand") : (lang === "DE" ? "Einklappen" : "Collapse")}
+                      >
+                        <svg className={`w-5 h-5 transform transition-transform ${s.collapsed ? "-rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+
                       {s.key ? (
                         <button
                           type="button"
@@ -1577,7 +2126,7 @@ export default function App() {
 
                       <button
                         type="button"
-                        className="ts-no-print px-3 py-2 rounded-xl text-sm font-medium border border-neutral-200 bg-white text-neutral-800 shadow-sm hover:bg-[rgb(var(--ts-accent-rgb)/0.25)] hover:border-[var(--ts-accent)] active:translate-y-[1px] transition"
+                        className="ts-no-print px-3 py-2 rounded-xl text-sm font-medium border border-[rgb(var(--ts-accent-rgb)/0.30)] bg-[rgb(var(--ts-accent-rgb)/0.30)] text-neutral-900 shadow-sm hover:bg-[rgb(var(--ts-accent-rgb)/0.50)] active:translate-y-[1px] transition"
                         onClick={() => addItem(s.id)}
                       >
                         {L.addItem}
@@ -1593,6 +2142,7 @@ export default function App() {
                     </div>
                   </div>
 
+                  {!s.collapsed && (
                   <div className={`${cardPad} space-y-3`}>
                     {filtered.length === 0 ? (
                       <div className="text-sm text-neutral-700">{lang === "DE" ? "Keine Punkte." : "No items."}</div>
@@ -1699,6 +2249,7 @@ export default function App() {
                       <div className="text-xs text-neutral-600">{lang === "DE" ? "Tipp: Exportiere wöchentlich." : "Tip: Export weekly."}</div>
                     </div>
                   </div>
+                  )}
                 </div>
               );
             })}
