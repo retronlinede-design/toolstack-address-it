@@ -207,6 +207,18 @@ const STR = {
     shortEmail: "Short Email",
     formalLetter: "Formal Letter",
     formSnippet: "Form Snippet",
+    // New strings for Export Pack
+    exportPack: "Export Pack",
+    exportPackTitle: "Export Pack",
+    exportPackDesc: "Save, share, or back up your data.",
+    pdfPrint: "PDF & Print",
+    downloadPdf: "Download PDF",
+    createEmail: "Create Email Draft",
+    jsonBackup: "JSON Backup",
+    downloadJson: "Download JSON",
+    importJson: "Import JSON",
+    importWarning: "Import replaces current app data. Export first if unsure.",
+    exportAll: "Export Everything (PDF + JSON)",
   },
   DE: {
     tagline: "Adressänderung beim Umzug organisieren",
@@ -284,6 +296,18 @@ const STR = {
     shortEmail: "Kurze E-Mail",
     formalLetter: "Formeller Brief",
     formSnippet: "Formular-Auszug",
+    // New strings for Export Pack
+    exportPack: "Export-Paket",
+    exportPackTitle: "Export-Paket",
+    exportPackDesc: "Speichere, teile oder sichere deine Daten.",
+    pdfPrint: "PDF & Druck",
+    downloadPdf: "PDF herunterladen",
+    createEmail: "E-Mail-Entwurf erstellen",
+    jsonBackup: "JSON-Backup",
+    downloadJson: "JSON herunterladen",
+    importJson: "JSON importieren",
+    importWarning: "Import ersetzt aktuelle Daten. Bei Unsicherheit zuerst exportieren.",
+    exportAll: "Alles exportieren (PDF + JSON)",
   },
 };
 
@@ -530,28 +554,31 @@ function ConfirmModal({ open, title, message, confirmText = "Delete", cancelText
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8">
-      <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
-      <div className="relative w-full max-w-md rounded-2xl bg-white border border-neutral-200 shadow-xl overflow-hidden">
-        <div className="p-4 border-b border-neutral-100">
-          <div className="text-lg font-semibold text-neutral-800">{title}</div>
-          <div className="text-sm text-neutral-700 mt-1">{message}</div>
-          <div className="mt-3 h-[2px] w-40 rounded-full bg-[var(--ts-accent)]" />
-        </div>
-        <div className="p-4 flex items-center justify-end gap-2">
-          <button
-            type="button"
-            className="ts-no-print px-3 py-2 rounded-xl text-sm font-medium border border-neutral-200 bg-white hover:bg-[rgb(var(--ts-accent-rgb)/0.25)] hover:border-[var(--ts-accent)] text-neutral-800 transition"
-            onClick={onCancel}
-          >
-            {cancelText}
-          </button>
-          <button
-            type="button"
-            className="ts-no-print px-3 py-2 rounded-xl text-sm font-medium border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 transition"
-            onClick={onConfirm}
-          >
-            {confirmText}
-          </button>
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel} />
+      <div className="relative w-full max-w-md rounded-2xl bg-neutral-900 text-neutral-100 border border-neutral-700 shadow-2xl overflow-hidden">
+        <div className="h-1 w-full bg-[#D5FF00] rounded-t-2xl" />
+        <div className="absolute inset-0 pointer-events-none opacity-70 bg-[radial-gradient(circle_at_20%_20%,rgba(213,255,0,0.12),transparent_45%),radial-gradient(circle_at_80%_30%,rgba(213,255,0,0.10),transparent_40%),radial-gradient(circle_at_30%_90%,rgba(255,255,255,0.05),transparent_45%)]" />
+        <div className="relative">
+          <div className="px-5 py-4 border-b border-neutral-800 bg-neutral-950/40">
+            <h2 className="text-lg font-semibold text-neutral-100">{title}</h2>
+            {message && <p className="text-sm text-neutral-400 mt-1">{message}</p>}
+          </div>
+          <div className="px-5 py-4 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              className="ts-no-print px-4 py-2 rounded-xl text-sm font-medium border border-neutral-700 bg-neutral-900 text-neutral-200 hover:bg-neutral-800 transition focus:outline-none focus:ring-2 focus:ring-[#D5FF00]"
+              onClick={onCancel}
+            >
+              {cancelText}
+            </button>
+            <button
+              type="button"
+              className="ts-no-print px-4 py-2 rounded-xl text-sm font-medium border border-red-800 bg-red-900/50 text-red-300 hover:bg-red-900/70 transition focus:outline-none focus:ring-2 focus:ring-[#D5FF00]"
+              onClick={onConfirm}
+            >
+              {confirmText}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -563,93 +590,109 @@ function HelpModal({ open, onClose, onReset, appName = "Address-It", storageKey 
   const L = STR[lang] || STR.EN;
 
   const Section = ({ title, children }) => (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-4 space-y-2">
-      <div className="text-sm font-semibold text-neutral-800">{title}</div>
-      <div className="text-sm text-neutral-700 leading-relaxed space-y-2">{children}</div>
+    <div className="rounded-2xl border border-neutral-700 bg-neutral-800/50 p-4 space-y-2">
+      <div className="text-sm font-semibold text-neutral-200">{title}</div>
+      <div className="text-sm text-neutral-300 leading-relaxed space-y-2">{children}</div>
     </div>
   );
 
   return (
-    <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
-      <div className="absolute inset-0 flex items-start justify-center p-4 sm:items-center sm:p-8">
-        <div className="w-full max-w-2xl rounded-2xl border border-neutral-200 bg-white shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
-          {/* Sticky header */}
-          <div className="sticky top-0 z-10 bg-white p-4 border-b border-neutral-100 flex items-start justify-between gap-4">
-            <div>
-              <div className="text-sm text-neutral-500">ToolStack • Help Pack v1.1</div>
-              <h2 className="text-lg font-semibold text-neutral-800">{appName}</h2>
-              <div className="mt-3 h-[2px] w-56 rounded-full bg-[var(--ts-accent)]" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
+      <div className="relative w-full max-w-2xl rounded-2xl bg-neutral-900 text-neutral-100 border border-neutral-700 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="h-1 w-full bg-[#D5FF00] rounded-t-2xl" />
+        <div className="absolute inset-0 pointer-events-none opacity-70 bg-[radial-gradient(circle_at_20%_20%,rgba(213,255,0,0.12),transparent_45%),radial-gradient(circle_at_80%_30%,rgba(213,255,0,0.10),transparent_40%),radial-gradient(circle_at_30%_90%,rgba(255,255,255,0.05),transparent_45%)]" />
+
+        {/* Header */}
+        <div className="relative px-5 py-4 border-b border-neutral-800 bg-neutral-950/40 flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-neutral-100">{appName} Help</h2>
+            <p className="text-sm text-neutral-400 mt-1">ToolStack Help Pack v1.1</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-700 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#D5FF00]"
+          >
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Scroll body */}
+        <div className="relative px-5 py-4 space-y-3 overflow-auto flex-1">
+          <Section title="1) About Address-It">
+            <p>
+              Address-It is a local-first address book and contact organiser designed to help you save, search, and manage contacts, then generate clean print-ready address lists. It runs entirely in your browser with no accounts, no cloud storage, and no automatic data sharing.
+            </p>
+          </Section>
+
+          <Section title="2) How Address-It Works">
+            <p>Address-It follows a simple workflow:</p>
+            <ol className="list-decimal list-inside space-y-1">
+              <li><strong>Add Contacts:</strong> Create contacts with names, phone numbers, emails, and notes.</li>
+              <li><strong>Organise & Search:</strong> Use search and categories/tags (if available) to quickly find people.</li>
+              <li><strong>Maintain & Update:</strong> Edit contact details as they change over time.</li>
+              <li><strong>Preview & Print:</strong> Generate a clean, print-ready contact list using Preview.</li>
+              <li><strong>Export a Backup:</strong> Export a JSON backup regularly, especially after major updates.</li>
+            </ol>
+          </Section>
+
+          <Section title="3) Your Data & Privacy">
+            <p>Your data is saved locally in this browser using secure local storage. This means:</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li>Your data stays on this device</li>
+              <li>Clearing browser data can remove saved contacts</li>
+              <li>Incognito/private mode will not retain data</li>
+              <li>Data does not automatically sync across devices</li>
+            </ul>
+          </Section>
+
+          <Section title="4) Backup & Restore">
+            <p>Export downloads a JSON backup of your current Address-It data. Import restores a previously exported JSON file and replaces current app data.</p>
+            <p className="font-semibold">Recommended routine:</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li>Export weekly</li>
+              <li>Export after major edits</li>
+              <li>Store backups in two locations (e.g., Downloads + Drive/USB)</li>
+            </ul>
+          </Section>
+
+          <Section title="5) Buttons Explained">
+            <ul className="list-disc list-inside space-y-1">
+              <li><strong>Preview</strong> – Opens the print-ready view.</li>
+              <li><strong>Print / Save PDF</strong> – Prints only the preview sheet. Choose “Save as PDF” to create a file.</li>
+              <li><strong>Export</strong> – Downloads a JSON backup file.</li>
+              <li><strong>Import</strong> – Restores data from a JSON backup file.</li>
+            </ul>
+          </Section>
+
+          <Section title="6) Storage Keys (Advanced)">
+            <div className="rounded-2xl border border-neutral-700 bg-neutral-800/50 px-3 py-2">
+              <div className="text-xs text-neutral-400">App data key</div>
+              <div className="text-sm text-neutral-200 font-mono break-all">{storageKey}</div>
             </div>
-            <TSButton variant="dark" onClick={onClose} className="w-auto px-3">
-              {L.close}
-            </TSButton>
-          </div>
+            <div className="rounded-2xl border border-neutral-700 bg-neutral-800/50 px-3 py-2">
+              <div className="text-xs text-neutral-400">Shared profile key</div>
+              <div className="text-sm text-neutral-200 font-mono break-all">{PROFILE_KEY}</div>
+            </div>
+            <p className="text-xs text-neutral-500">(If additional keys exist, list them below without removing anything.)</p>
+          </Section>
 
-          {/* Scroll body */}
-          <div className="p-4 space-y-3 overflow-auto flex-1">
-            <Section title={lang === "DE" ? "1) Autosave" : "1) Autosave"}>
-              <div>{lang === "DE" ? "Deine Daten werden automatisch im Browser gespeichert (localStorage)." : "Your data autosaves locally in your browser (localStorage)."}</div>
-            </Section>
+          <Section title="7) Notes / Limitations">
+            <ul className="list-disc list-inside space-y-1">
+              <li>Address-It is an organisation tool. Data accuracy depends on what you enter.</li>
+              <li>Use Export regularly to avoid data loss.</li>
+            </ul>
+          </Section>
 
-            <Section title={lang === "DE" ? "2) Export" : "2) Export"}>
-              <div>{lang === "DE" ? "Export lädt eine JSON-Backup-Datei herunter." : "Export downloads a JSON backup file."}</div>
-            </Section>
+          <Section title="8) Support / Feedback">
+            <p>If something breaks, include: device + browser + steps to reproduce + expected vs actual behaviour.</p>
+          </Section>
 
-            <Section title={lang === "DE" ? "3) Import" : "3) Import"}>
-              <div>
-                {lang === "DE"
-                  ? "Import ersetzt deine aktuellen Daten durch den Inhalt der Backup-Datei. Tipp: vorher exportieren."
-                  : "Import replaces your current data with the backup file contents. Tip: export first."}
-              </div>
-            </Section>
-
-            <Section title={lang === "DE" ? "4) PDF speichern" : "4) Save PDF"}>
-              <div>
-                {lang === "DE"
-                  ? "Öffne Vorschau → klicke „PDF speichern“. Es öffnet sich der Browser-Druckdialog; dort „Als PDF speichern“ wählen."
-                  : "Open Preview → click “Save PDF”. Your browser print dialog opens; choose “Save as PDF”."}
-              </div>
-              <div>{lang === "DE" ? "Beim Drucken wird nur das Vorschau-Blatt gedruckt." : "Printing is scoped to the preview sheet only."}</div>
-            </Section>
-
-            <Section title={lang === "DE" ? "5) Limits" : "5) Limits"}>
-              <div>{lang === "DE" ? "Dieses Tool ist ein MVP. Kein Login, keine Cloud-Sync." : "This tool is an MVP. No login and no cloud sync."}</div>
-            </Section>
-
-            <Section title={lang === "DE" ? "6) Offizielle Links" : "6) Official links"}>
-              <div>
-                {HUB_URL && !String(HUB_URL).includes("YOUR-WIX-HUB-URL-HERE") ? (
-                  <a className="underline" href={HUB_URL} target="_blank" rel="noreferrer">
-                    {lang === "DE" ? "Zum ToolStack Hub" : "Open ToolStack Hub"}
-                  </a>
-                ) : (
-                  <span className="text-neutral-600">{lang === "DE" ? "(Kein Hub-Link konfiguriert)" : "(No hub link configured)"}</span>
-                )}
-              </div>
-            </Section>
-
-            <Section title={lang === "DE" ? "7) Tipp" : "7) Tip"}>
-              <div>{lang === "DE" ? "Tipp: Exportiere wöchentlich als Backup." : "Tip: export weekly for backups."}</div>
-            </Section>
-
-            <Section title={lang === "DE" ? "8) Storage keys" : "8) Storage keys"}>
-              <div className="rounded-2xl border border-neutral-200 bg-neutral-50 px-3 py-2">
-                <div className="text-xs text-neutral-600">App</div>
-                <div className="text-sm text-neutral-800 font-mono break-all">{storageKey}</div>
-              </div>
-              <div className="rounded-2xl border border-neutral-200 bg-neutral-50 px-3 py-2">
-                <div className="text-xs text-neutral-600">Profile (reserved)</div>
-                <div className="text-sm text-neutral-800 font-mono break-all">{PROFILE_KEY}</div>
-              </div>
-              <div className="text-xs text-neutral-600">Lang key: {`${storageKey}.lang`}</div>
-            </Section>
-          </div>
-
-          {/* Always-visible footer */}
-          <div className="p-4 border-t border-neutral-100 flex items-center justify-end gap-2">
-            <TSButton
-              variant="danger"
+          <div className="pt-4">
+            <button
+              type="button"
               onClick={() => {
                 try {
                   const ok =
@@ -662,13 +705,10 @@ function HelpModal({ open, onClose, onReset, appName = "Address-It", storageKey 
                 }
                 onReset?.();
               }}
-              className="w-auto px-3"
+              className="ts-no-print w-auto px-4 py-2 rounded-xl text-sm font-medium border border-red-800 bg-red-900/50 text-red-300 hover:bg-red-900/70 transition focus:outline-none focus:ring-2 focus:ring-[#D5FF00]"
             >
               {L.resetAppData}
-            </TSButton>
-            <TSButton variant="accent" onClick={onClose} className="w-auto px-3">
-              {L.gotIt}
-            </TSButton>
+            </button>
           </div>
         </div>
       </div>
@@ -682,24 +722,36 @@ function PreviewModal({ open, onClose, onPrint, children, lang }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full max-w-5xl">
-        <div className="mb-3 rounded-2xl bg-white border border-neutral-200 shadow-sm p-3 flex items-center justify-between gap-3">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-5xl rounded-2xl bg-neutral-900 text-neutral-100 border border-neutral-700 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="h-1 w-full bg-[#D5FF00] rounded-t-2xl" />
+        <div className="absolute inset-0 pointer-events-none opacity-70 bg-[radial-gradient(circle_at_20%_20%,rgba(213,255,0,0.12),transparent_45%),radial-gradient(circle_at_80%_30%,rgba(213,255,0,0.10),transparent_40%),radial-gradient(circle_at_30%_90%,rgba(255,255,255,0.05),transparent_45%)]" />
+
+        <div className="relative px-5 py-4 border-b border-neutral-800 bg-neutral-950/40 flex items-center justify-between gap-4">
           <div>
-            <div className="text-lg font-semibold text-neutral-800">{L.preview}</div>
-            <div className="text-xs text-neutral-600">{lang === "DE" ? "Druckdialog öffnet sich im Browser." : "Browser print dialog opens."}</div>
+            <h2 className="text-lg font-semibold text-neutral-100">{L.preview}</h2>
+            <p className="text-sm text-neutral-400 mt-1">{lang === "DE" ? "Druckdialog öffnet sich im Browser." : "Browser print dialog opens."}</p>
           </div>
           <div className="flex items-center gap-2">
-            <TSButton variant="accent" onClick={onPrint} className="w-auto px-3">
+            <button
+              type="button"
+              onClick={onPrint}
+              className="ts-no-print w-auto px-4 py-2 rounded-xl text-sm font-medium border border-[#D5FF00] text-neutral-100 hover:bg-neutral-800 transition focus:outline-none focus:ring-2 focus:ring-[#D5FF00]"
+            >
               {L.savePdf}
-            </TSButton>
-            <TSButton variant="dark" onClick={onClose} className="w-auto px-3">
-              {L.close}
-            </TSButton>
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-700 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#D5FF00]"
+            >
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
         </div>
 
-        <div className="rounded-2xl bg-white border border-neutral-200 shadow-xl overflow-auto max-h-[80vh]">{children}</div>
+        <div className="relative p-5 overflow-auto">{children}</div>
       </div>
     </div>
   );
@@ -737,32 +789,37 @@ function WizardModal({ open, onClose, lang, draft, setDraft, onFinish }) {
 
   return (
     <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
-      <div className="absolute inset-0 flex items-center justify-center p-4 sm:p-8">
-        <div className="w-full max-w-3xl rounded-2xl border border-neutral-200 bg-white shadow-xl overflow-hidden">
-          <div className="p-4 border-b border-neutral-100 flex items-start justify-between gap-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
+      <div className="relative w-full max-w-3xl rounded-2xl bg-neutral-900 text-neutral-100 border border-neutral-700 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="h-1 w-full bg-[#D5FF00] rounded-t-2xl" />
+        <div className="absolute inset-0 pointer-events-none opacity-70 bg-[radial-gradient(circle_at_20%_20%,rgba(213,255,0,0.12),transparent_45%),radial-gradient(circle_at_80%_30%,rgba(213,255,0,0.10),transparent_40%),radial-gradient(circle_at_30%_90%,rgba(255,255,255,0.05),transparent_45%)]" />
+
+        <div className="relative">
+          <div className="px-5 py-4 border-b border-neutral-800 bg-neutral-950/40 flex items-start justify-between gap-4">
             <div>
-              <div className="text-sm text-neutral-500">ToolStack • {L.wizardTitle}</div>
-              <h2 className="text-lg font-semibold text-neutral-800">{L.wizardIntro}</h2>
-              <div className="mt-3 h-[2px] w-72 rounded-full bg-[var(--ts-accent)]" />
+              <h2 className="text-lg font-semibold text-neutral-100">{L.wizardTitle}</h2>
+              <p className="text-sm text-neutral-400 mt-1">{L.wizardIntro}</p>
             </div>
-            <TSButton variant="dark" onClick={onClose} className="w-auto px-3">
-              {L.close}
-            </TSButton>
+            <button
+              onClick={onClose}
+              className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-700 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#D5FF00]"
+            >
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
           </div>
 
-          <div className="p-4 space-y-4 max-h-[70vh] overflow-auto">
+          <div className="px-5 py-4 space-y-4 max-h-[70vh] overflow-auto">
             {steps[stepIndex] === "country" ? (
               <div className="space-y-3">
-                <div className="text-sm font-semibold text-neutral-800">{L.pickCountry}</div>
+                <div className="text-sm font-semibold text-neutral-200">{L.pickCountry}</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <button
                     type="button"
                     className={
-                      "ts-no-print h-12 rounded-2xl border text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ts-accent-rgb)/0.25)] " +
+                      "ts-no-print h-12 rounded-xl border text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-[#D5FF00] " +
                       (draft.country === "DE"
-                        ? "border-neutral-700 bg-neutral-700 text-white"
-                        : "border-neutral-200 bg-white hover:bg-[rgb(var(--ts-accent-rgb)/0.25)] hover:border-[var(--ts-accent)] text-neutral-700")
+                        ? "border-[#D5FF00] bg-[#D5FF00] text-neutral-900 font-semibold"
+                        : "border-neutral-700 bg-neutral-800 text-neutral-200 hover:bg-neutral-700")
                     }
                     onClick={() => setDraft((d) => ({ ...d, country: "DE" }))}
                   >
@@ -771,17 +828,17 @@ function WizardModal({ open, onClose, lang, draft, setDraft, onFinish }) {
                   <button
                     type="button"
                     className={
-                      "ts-no-print h-12 rounded-2xl border text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ts-accent-rgb)/0.25)] " +
+                      "ts-no-print h-12 rounded-xl border text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-[#D5FF00] " +
                       (draft.country === "WORLD"
-                        ? "border-neutral-700 bg-neutral-700 text-white"
-                        : "border-neutral-200 bg-white hover:bg-[rgb(var(--ts-accent-rgb)/0.25)] hover:border-[var(--ts-accent)] text-neutral-700")
+                        ? "border-[#D5FF00] bg-[#D5FF00] text-neutral-900 font-semibold"
+                        : "border-neutral-700 bg-neutral-800 text-neutral-200 hover:bg-neutral-700")
                     }
                     onClick={() => setDraft((d) => ({ ...d, country: "WORLD" }))}
                   >
                     {L.worldwide}
                   </button>
                 </div>
-                <div className="text-xs text-neutral-600">
+                <div className="text-xs text-neutral-400">
                   {lang === "DE"
                     ? "Deutschland fügt passende Vorschläge hinzu (Ummeldung, Rundfunkbeitrag, etc.)."
                     : "Germany includes DE-specific suggestions (registration, broadcasting fee, etc.)."}
@@ -791,7 +848,7 @@ function WizardModal({ open, onClose, lang, draft, setDraft, onFinish }) {
 
             {steps[stepIndex] === "sections" ? (
               <div className="space-y-3">
-                <div className="text-sm font-semibold text-neutral-800">{L.chooseSections}</div>
+                <div className="text-sm font-semibold text-neutral-200">{L.chooseSections}</div>
                 <div className="space-y-2">
                   {presets.map((p) => {
                     const selected = (draft.selectedKeys || []).includes(p.key);
@@ -801,28 +858,28 @@ function WizardModal({ open, onClose, lang, draft, setDraft, onFinish }) {
                         type="button"
                         onClick={() => toggle(p.key)}
                         className={
-                          "ts-no-print w-full text-left rounded-2xl border p-3 transition focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ts-accent-rgb)/0.25)] " +
+                          "ts-no-print w-full text-left rounded-xl border p-3 transition focus:outline-none focus:ring-2 focus:ring-[#D5FF00] " +
                           (selected
-                            ? "border-neutral-700 bg-neutral-700 text-white"
-                            : "border-neutral-200 bg-white hover:bg-[rgb(var(--ts-accent-rgb)/0.25)] hover:border-[var(--ts-accent)]")
+                            ? "border-[#D5FF00] bg-neutral-800"
+                            : "border-neutral-700 bg-neutral-800/50 hover:bg-neutral-800")
                         }
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <div className={selected ? "text-white font-semibold" : "text-neutral-800 font-semibold"}>{p.name}</div>
+                          <div className={selected ? "text-[#D5FF00] font-semibold" : "text-neutral-200 font-semibold"}>{p.name}</div>
                           {p.recommended ? (
                             <span
                               className={
                                 "text-xs font-medium px-2 py-1 rounded-full border " +
                                 (selected
-                                  ? "border-white/30 bg-white/10 text-white"
-                                  : "border-[var(--ts-accent)] bg-[rgb(var(--ts-accent-rgb)/0.20)] text-neutral-800")
+                                  ? "border-[#D5FF00] text-[#D5FF00]"
+                                  : "border-neutral-600 text-neutral-400")
                               }
                             >
                               {L.recommended}
                             </span>
                           ) : null}
                         </div>
-                        <div className={selected ? "text-white/80 text-sm mt-1" : "text-neutral-600 text-sm mt-1"}>
+                        <div className={selected ? "text-neutral-300 text-sm mt-1" : "text-neutral-400 text-sm mt-1"}>
                           {(p.items || []).slice(0, 3).join(" • ")}
                           {(p.items || []).length > 3 ? "…" : ""}
                         </div>
@@ -834,19 +891,18 @@ function WizardModal({ open, onClose, lang, draft, setDraft, onFinish }) {
             ) : null}
           </div>
 
-          <div className="p-4 border-t border-neutral-100 flex items-center justify-between gap-2">
-            <TSButton variant="neutral" onClick={back} disabled={stepIndex === 0} className="w-auto px-3">
+          <div className="px-5 py-4 border-t border-neutral-800 flex items-center justify-between gap-2">
+            <button type="button" onClick={back} disabled={stepIndex === 0} className="ts-no-print w-auto px-4 py-2 rounded-xl text-sm font-medium border border-neutral-700 bg-neutral-900 text-neutral-200 hover:bg-neutral-800 transition focus:outline-none focus:ring-2 focus:ring-[#D5FF00] disabled:opacity-50">
               {L.back}
-            </TSButton>
-
+            </button>
             {stepIndex < steps.length - 1 ? (
-              <TSButton variant="dark" onClick={next} className="w-auto px-3">
+              <button type="button" onClick={next} className="ts-no-print w-auto px-4 py-2 rounded-xl text-sm font-medium border-transparent bg-neutral-700 text-white hover:bg-neutral-600 transition focus:outline-none focus:ring-2 focus:ring-[#D5FF00]">
                 {L.next}
-              </TSButton>
+              </button>
             ) : (
-              <TSButton variant="dark" onClick={finish} className="w-auto px-3">
+              <button type="button" onClick={finish} className="ts-no-print w-auto px-4 py-2 rounded-xl text-sm font-medium border-transparent bg-neutral-700 text-white hover:bg-neutral-600 transition focus:outline-none focus:ring-2 focus:ring-[#D5FF00]">
                 {L.finish}
-              </TSButton>
+              </button>
             )}
           </div>
         </div>
@@ -855,105 +911,70 @@ function WizardModal({ open, onClose, lang, draft, setDraft, onFinish }) {
   );
 }
 
-function DataModal({ open, onClose, onExportJSON, onImportJSON, onExportCSV, lang }) {
+function ExportPackModal({ open, onClose, onDownloadPDF, onPrint, onExportJSON, onImportJSON, appName, getExportTitle, lang }) {
   if (!open) return null;
   const L = STR[lang] || STR.EN;
+  const exportTitle = getExportTitle();
 
-  const ActionCard = ({ icon, title, desc, action, secondaryAction }) => (
-    <div className="group relative overflow-hidden rounded-2xl border border-neutral-200 bg-white p-5 transition-all hover:border-[var(--ts-accent)] hover:shadow-md">
-      <div className="flex items-start gap-4">
-        <div className="shrink-0 rounded-xl bg-neutral-50 p-3 text-2xl group-hover:bg-[rgb(var(--ts-accent-rgb)/0.2)] transition-colors">
-          {icon}
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-neutral-800">{title}</h3>
-          <p className="text-sm text-neutral-500 mt-1 leading-relaxed">{desc}</p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {action}
-            {secondaryAction}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  const mailtoBody =
+    lang === "DE"
+      ? `Anbei: PDF-Export von ${appName} (bitte die heruntergeladene PDF-Datei anhängen).\n\nDatenschutz: Exporte werden auf Ihrem Gerät generiert und nicht automatisch geteilt.`
+      : `Attached: PDF export from ${appName} (please attach the downloaded PDF file).\n\nData privacy: exports are generated on your device and are not automatically shared.`;
+
+  const mailtoHref = `mailto:?subject=${encodeURIComponent(exportTitle)}&body=${encodeURIComponent(mailtoBody)}`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-      <div className="absolute inset-0 bg-neutral-900/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
-      <div className="relative w-full max-w-2xl transform overflow-hidden rounded-3xl bg-white shadow-2xl transition-all">
-        
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-4xl rounded-2xl bg-neutral-900 text-neutral-100 border border-neutral-700 shadow-2xl overflow-hidden">
+        <div className="h-1 w-full bg-[#D5FF00] rounded-t-2xl" />
+        <div className="absolute inset-0 pointer-events-none opacity-70 bg-[radial-gradient(circle_at_20%_20%,rgba(213,255,0,0.12),transparent_45%),radial-gradient(circle_at_80%_30%,rgba(213,255,0,0.10),transparent_40%),radial-gradient(circle_at_30%_90%,rgba(255,255,255,0.05),transparent_45%)]" />
+
         {/* Header */}
-        <div className="relative overflow-hidden bg-neutral-900 px-6 py-8 text-white">
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-32 w-32 rounded-full bg-[var(--ts-accent)] opacity-20 blur-3xl" />
-          <div className="absolute bottom-0 left-0 -mb-4 -ml-4 h-32 w-32 rounded-full bg-blue-500 opacity-20 blur-3xl" />
-          
-          <div className="relative flex items-start justify-between">
-            <div>
-              <h2 className="text-2xl font-black tracking-tight">
-                {lang === "DE" ? "Daten & Export" : "Data & Export"}
-              </h2>
-              <p className="mt-2 text-neutral-400 max-w-sm">
-                {lang === "DE" 
-                  ? "Sichere deine Fortschritte oder exportiere sie für andere Apps." 
-                  : "Secure your progress or export for other tools."}
-              </p>
-            </div>
-            <button 
-              onClick={onClose}
-              className="rounded-full bg-white/10 p-2 text-white hover:bg-white/20 transition-colors"
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+        <div className="relative px-5 py-4 flex items-start justify-between border-b border-neutral-800 bg-neutral-950/40">
+          <div>
+            <h2 className="text-lg font-semibold text-neutral-100">{L.exportPackTitle}</h2>
+            <p className="text-sm text-neutral-400 mt-1">{L.exportPackDesc}</p>
           </div>
+          <button
+            onClick={onClose}
+            className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-700 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#D5FF00]"
+          >
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
         {/* Body */}
-        <div className="p-6 bg-neutral-50/50 space-y-4">
-          
-          {/* JSON Backup Card */}
-          <ActionCard 
-            icon="📦"
-            title={lang === "DE" ? "Vollständiges Backup (JSON)" : "Full Backup (JSON)"}
-            desc={lang === "DE" 
-              ? "Speichere den kompletten Zustand der App. Ideal für Backups oder um Daten auf ein anderes Gerät zu übertragen." 
-              : "Save the complete app state. Perfect for backups or transferring data to another device."}
-            action={
-              <TSButton variant="dark" onClick={onExportJSON} className="w-auto px-4">
-                {L.export} JSON
-              </TSButton>
-            }
-            secondaryAction={
-              <TSFileButton onFile={onImportJSON} title={lang === "DE" ? "Backup wiederherstellen" : "Restore backup"} className="w-auto px-4 bg-white border-neutral-200 text-neutral-700 hover:border-neutral-300">
-                {L.import} JSON
-              </TSFileButton>
-            }
-          />
+        <div className="relative p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Left Card: PDF & Print */}
+          <div className="rounded-xl border border-neutral-700 bg-neutral-800/50 p-5 space-y-3">
+            <h3 className="font-semibold text-neutral-200">{L.pdfPrint}</h3>
+            <button type="button" onClick={onDownloadPDF} className="ts-no-print h-10 w-full px-3 rounded-xl text-sm font-medium border-transparent bg-neutral-700 text-white hover:bg-neutral-600 transition focus:outline-none focus:ring-2 focus:ring-[#D5FF00]">{L.downloadPdf}</button>
+            <button type="button" onClick={onPrint} className="ts-no-print h-10 w-full px-3 rounded-xl text-sm font-medium border border-neutral-700 bg-neutral-900 text-neutral-200 hover:bg-neutral-800 transition focus:outline-none focus:ring-2 focus:ring-[#D5FF00]">{L.savePdf}</button>
+            <a
+              href={mailtoHref}
+              className="ts-no-print h-10 w-full px-3 rounded-xl text-sm font-medium border border-[#D5FF00] text-neutral-100 hover:bg-neutral-800 transition focus:outline-none focus:ring-2 focus:ring-[#D5FF00] flex items-center justify-center"
+            >
+              <span className="truncate">{L.createEmail}</span>
+            </a>
+          </div>
 
-          {/* CSV Export Card */}
-          <ActionCard 
-            icon="📊"
-            title={lang === "DE" ? "Tabellen-Export (CSV)" : "Spreadsheet Export (CSV)"}
-            desc={lang === "DE" 
-              ? "Erstelle eine Liste für Excel, Numbers oder Google Sheets. Enthält nur Textdaten." 
-              : "Create a list for Excel, Numbers, or Google Sheets. Contains text data only."}
-            action={
-              <TSButton onClick={onExportCSV} className="w-auto px-4">
-                {L.csv}
-              </TSButton>
-            }
-          />
-
+          {/* Right Card: JSON Backup */}
+          <div className="rounded-xl border border-neutral-700 bg-neutral-800/50 p-5 space-y-3">
+            <h3 className="font-semibold text-neutral-200">{L.jsonBackup}</h3>
+            <button type="button" onClick={onExportJSON} className="ts-no-print h-10 w-full px-3 rounded-xl text-sm font-medium border-transparent bg-neutral-700 text-white hover:bg-neutral-600 transition focus:outline-none focus:ring-2 focus:ring-[#D5FF00]">{L.downloadJson}</button>
+            <TSFileButton onFile={onImportJSON} className="w-full !bg-neutral-900 !border-neutral-700 !text-neutral-200 hover:!bg-neutral-800">{L.importJson}</TSFileButton>
+            <p className="text-xs text-neutral-400 text-center pt-1">{L.importWarning}</p>
+          </div>
         </div>
 
         {/* Footer */}
-        <div className="bg-neutral-50 px-6 py-4 text-center border-t border-neutral-100">
-          <p className="text-xs text-neutral-400 font-medium">
-            {lang === "DE" 
-              ? "Deine Daten werden lokal in deinem Browser gespeichert. Kein Cloud-Upload." 
-              : "Your data is stored locally in your browser. No cloud upload."}
-          </p>
+        <div className="relative px-5 py-4 border-t border-neutral-800 flex justify-center">
+          <button type="button" onClick={() => { onDownloadPDF(); onExportJSON(); }} className="ts-no-print h-10 w-auto px-6 rounded-xl text-sm font-medium border border-[#D5FF00] text-neutral-100 hover:bg-neutral-800 transition focus:outline-none focus:ring-2 focus:ring-[#D5FF00]">
+            {L.exportAll}
+          </button>
         </div>
       </div>
     </div>
@@ -1245,7 +1266,7 @@ export default function App() {
 
   const [helpOpen, setHelpOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [dataModalOpen, setDataModalOpen] = useState(false);
+  const [exportPackOpen, setExportPackOpen] = useState(false);
 
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardDraft, setWizardDraft] = useState({ country: app.country, selectedKeys: [] });
@@ -1658,6 +1679,18 @@ export default function App() {
   // Preview / Print
   const openPreview = () => setPreviewOpen(true);
 
+  const handlePrintAndPdf = () => {
+    setExportPackOpen(false);
+    setPreviewOpen(true);
+    setTimeout(() => {
+      try {
+        if (typeof window !== "undefined") window.print();
+      } catch (e) {
+        console.error("Print failed", e);
+      }
+    }, 150); // Give it a moment to render preview
+  };
+
   // ---------------- Print rules ----------------
   const tsVars = `
     :root {
@@ -1740,18 +1773,22 @@ export default function App() {
 
       <HelpModal open={helpOpen} onClose={() => setHelpOpen(false)} onReset={resetApp} appName="Address-It" storageKey={KEY} lang={lang} />
 
-      <DataModal
-        open={dataModalOpen}
-        onClose={() => setDataModalOpen(false)}
+      <ExportPackModal
+        open={exportPackOpen}
+        onClose={() => setExportPackOpen(false)}
+        onDownloadPDF={handlePrintAndPdf}
+        onPrint={handlePrintAndPdf}
         onExportJSON={exportJSON}
         onImportJSON={(f) => {
           if (!f) return;
+          setExportPackOpen(false);
           setImportConfirm({ open: true, file: f });
-          setDataModalOpen(false);
         }}
-        onExportCSV={exportCSV}
+        appName="Address-It"
+        getExportTitle={() => `Address-It Export Pack – ${todayISO()}`}
         lang={lang}
       />
+
 
       <PreviewModal
         open={previewOpen}
@@ -1765,7 +1802,7 @@ export default function App() {
           }
         }}
       >
-        <div id="addressit-print-preview" className="p-6">
+        <div id="addressit-print-preview" className="p-6 bg-white rounded-xl text-neutral-800">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="text-2xl font-bold tracking-tight text-neutral-800">{profile.org || "ToolStack"}</div>
@@ -1863,8 +1900,8 @@ export default function App() {
                 <TSButton onClick={openPreview} disabled={totals.total === 0} title={L.preview}>
                   {L.preview}
                 </TSButton>
-                <TSButton onClick={() => setDataModalOpen(true)} title={L.export}>
-                  {L.export}
+                <TSButton onClick={() => setExportPackOpen(true)} title={L.exportPack}>
+                  {L.exportPack}
                 </TSButton>
               </div>
 
