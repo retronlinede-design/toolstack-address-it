@@ -623,47 +623,50 @@ function HelpModal({ open, onClose, onReset, appName = "Address-It", storageKey 
         <div className="relative px-5 py-4 space-y-3 overflow-auto flex-1">
           <Section title="1) About Address-It">
             <p>
-              Address-It is a local-first address book and contact organiser designed to help you save, search, and manage contacts, then generate clean print-ready address lists. It runs entirely in your browser with no accounts, no cloud storage, and no automatic data sharing.
+              Address-It is a local-first checklist manager for handling address changes when moving. It includes country-specific presets (Germany/Worldwide), an Address Profile for your old/new details, and an Autofill Pack for generating notification templates. It runs entirely in your browser with no accounts or cloud storage.
             </p>
           </Section>
 
-          <Section title="2) How Address-It Works">
+          <Section title="2) How It Works">
             <p>Address-It follows a simple workflow:</p>
             <ol className="list-decimal list-inside space-y-1">
-              <li><strong>Add Contacts:</strong> Create contacts with names, phone numbers, emails, and notes.</li>
-              <li><strong>Organise & Search:</strong> Use search and categories/tags (if available) to quickly find people.</li>
-              <li><strong>Maintain & Update:</strong> Edit contact details as they change over time.</li>
-              <li><strong>Preview & Print:</strong> Generate a clean, print-ready contact list using Preview.</li>
-              <li><strong>Export a Backup:</strong> Export a JSON backup regularly, especially after major updates.</li>
+              <li><strong>Setup:</strong> Use the wizard to pick your country and preset sections.</li>
+              <li><strong>Manage:</strong> Add or edit sections and items. Set due dates and track progress.</li>
+              <li><strong>Dashboard:</strong> Use filters (Overdue, Due soon) to stay on top of tasks.</li>
+              <li><strong>Output:</strong> Use Preview/Print for a report, or Export Pack to save/share data.</li>
             </ol>
           </Section>
 
           <Section title="3) Your Data & Privacy">
-            <p>Your data is saved locally in this browser using secure local storage. This means:</p>
+            <p>Your data is saved locally in this browser (localStorage). This means:</p>
             <ul className="list-disc list-inside space-y-1">
               <li>Your data stays on this device</li>
-              <li>Clearing browser data can remove saved contacts</li>
+              <li>No cloud sync or accounts</li>
               <li>Incognito/private mode will not retain data</li>
-              <li>Data does not automatically sync across devices</li>
+              <li>Clearing browser site data deletes your checklist</li>
             </ul>
           </Section>
 
           <Section title="4) Backup & Restore">
-            <p>Export downloads a JSON backup of your current Address-It data. Import restores a previously exported JSON file and replaces current app data.</p>
+            <p>Export downloads a JSON backup of your current checklist. Import restores a previously exported JSON file and replaces current app data.</p>
             <p className="font-semibold">Recommended routine:</p>
             <ul className="list-disc list-inside space-y-1">
               <li>Export weekly</li>
               <li>Export after major edits</li>
-              <li>Store backups in two locations (e.g., Downloads + Drive/USB)</li>
+              <li>Store backups securely</li>
             </ul>
           </Section>
 
           <Section title="5) Buttons Explained">
             <ul className="list-disc list-inside space-y-1">
-              <li><strong>Preview</strong> – Opens the print-ready view.</li>
-              <li><strong>Print / Save PDF</strong> – Prints only the preview sheet. Choose “Save as PDF” to create a file.</li>
-              <li><strong>Export</strong> – Downloads a JSON backup file.</li>
-              <li><strong>Import</strong> – Restores data from a JSON backup file.</li>
+              <li><strong>Hub:</strong> Return to ToolStack hub.</li>
+              <li><strong>Preview:</strong> View print-ready report.</li>
+              <li><strong>Export Pack:</strong> PDF, Print, JSON Backup options.</li>
+              <li><strong>Setup:</strong> Run the wizard again (adds to existing).</li>
+              <li><strong>Reset:</strong> Clear all data and start over.</li>
+              <li><strong>Add section/item:</strong> Create custom entries.</li>
+              <li><strong>Add suggested:</strong> Add missing recommended items from presets.</li>
+              <li><strong>Hide done:</strong> Toggle visibility of completed items.</li>
             </ul>
           </Section>
 
@@ -681,13 +684,14 @@ function HelpModal({ open, onClose, onReset, appName = "Address-It", storageKey 
 
           <Section title="7) Notes / Limitations">
             <ul className="list-disc list-inside space-y-1">
-              <li>Address-It is an organisation tool. Data accuracy depends on what you enter.</li>
+              <li>Address-It is an organisation tool; it does not perform the address change for you.</li>
+              <li>Verify specific requirements for each recipient (e.g. banks, government).</li>
               <li>Use Export regularly to avoid data loss.</li>
             </ul>
           </Section>
 
           <Section title="8) Support / Feedback">
-            <p>If something breaks, include: device + browser + steps to reproduce + expected vs actual behaviour.</p>
+            <p>If something breaks, please include: device + browser + steps to reproduce + expected vs actual behaviour.</p>
           </Section>
 
           <div className="pt-4">
@@ -1002,6 +1006,10 @@ function AddressInputGroup({ title, address, onUpdate, L }) {
           <input type="text" value={address.city} onChange={e => onUpdate('city', e.target.value)} className={inputBase} placeholder={L.city} />
         </div>
         <div className="col-span-2">
+          <label className="text-xs font-medium text-neutral-600">{L.state}</label>
+          <input type="text" value={address.state} onChange={e => onUpdate('state', e.target.value)} className={inputBase} placeholder={L.state} />
+        </div>
+        <div className="col-span-2">
           <label className="text-xs font-medium text-neutral-600">{L.country}</label>
           <input type="text" value={address.country} onChange={e => onUpdate('country', e.target.value)} className={inputBase} placeholder={L.country} />
         </div>
@@ -1010,7 +1018,66 @@ function AddressInputGroup({ title, address, onUpdate, L }) {
   );
 }
 
-function AddressProfile({ profile, onUpdate, onCopy, L, collapsed, onToggleCollapse }) {
+function DeUmmeldungCard({ data, onUpdate, collapsed, onToggleCollapse, lang, L }) {
+  return (
+    <div className={card}>
+      <div className={`${cardHead} flex items-center justify-between`}>
+        <h3 className="font-semibold text-neutral-800">
+          {lang === "DE" ? "Ummeldung / Bürgerbüro" : "Registration / Citizens' Office"}
+        </h3>
+        <button
+          type="button"
+          className="ts-no-print h-9 w-9 rounded-xl border border-neutral-200 bg-white text-neutral-500 shadow-sm hover:bg-neutral-50 hover:text-neutral-800 transition flex items-center justify-center"
+          onClick={onToggleCollapse}
+          title={collapsed ? (lang === "DE" ? "Ausklappen" : "Expand") : (lang === "DE" ? "Einklappen" : "Collapse")}
+        >
+          <svg className={`w-5 h-5 transform transition-transform ${collapsed ? "-rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+      {!collapsed && (
+        <div className={`${cardPad} space-y-4`}>
+          <p className="text-xs text-neutral-500">
+            {lang === "DE"
+              ? "Deutschland: Ummeldung/Anmeldung ist oft Pflicht. Trage den Termin und Status hier ein."
+              : "Germany: registration is often required. Track your appointment and status here."}
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-medium text-neutral-600">{lang === "DE" ? "Stadt/Gemeinde" : "City/Municipality"}</label>
+              <input type="text" className={inputBase} value={data.cityGemeinde || ""} onChange={(e) => onUpdate("cityGemeinde", e.target.value)} placeholder={lang === "DE" ? "z.B. Berlin" : "e.g. Berlin"} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-neutral-600">{lang === "DE" ? "Termin" : "Appointment"}</label>
+              <input type="datetime-local" className={inputBase} value={data.appointmentDateTime || ""} onChange={(e) => onUpdate("appointmentDateTime", e.target.value)} />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm text-neutral-800 select-none cursor-pointer">
+              <input type="checkbox" className="h-4 w-4 rounded border-neutral-300 text-[var(--ts-accent)] focus:ring-[var(--ts-accent)]" checked={!!data.wohnungsgeberbestaetigungReceived} onChange={(e) => onUpdate("wohnungsgeberbestaetigungReceived", e.target.checked)} />
+              {lang === "DE" ? "Wohnungsgeberbestätigung erhalten" : "Housing confirmation received"}
+            </label>
+
+            <label className="flex items-center gap-2 text-sm text-neutral-800 select-none cursor-pointer">
+              <input type="checkbox" className="h-4 w-4 rounded border-neutral-300 text-[var(--ts-accent)] focus:ring-[var(--ts-accent)]" checked={!!data.ummeldungDone} onChange={(e) => onUpdate("ummeldungDone", e.target.checked)} />
+              {lang === "DE" ? "Ummeldung erledigt" : "Registration done"}
+            </label>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-neutral-600">{L.notes}</label>
+            <textarea className={`${inputBase} min-h-[80px]`} value={data.notes || ""} onChange={(e) => onUpdate("notes", e.target.value)} placeholder={L.notes} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AddressProfile({ profile, onUpdate, onCopy, L, lang, collapsed, onToggleCollapse }) {
   return (
     <div className={card}>
       <div className={`${cardHead} flex items-center justify-between`}>
@@ -1019,7 +1086,7 @@ function AddressProfile({ profile, onUpdate, onCopy, L, collapsed, onToggleColla
           type="button"
           className="ts-no-print h-9 w-9 rounded-xl border border-neutral-200 bg-white text-neutral-500 shadow-sm hover:bg-neutral-50 hover:text-neutral-800 transition flex items-center justify-center"
           onClick={onToggleCollapse}
-          title={collapsed ? (L.lang === "DE" ? "Ausklappen" : "Expand") : (L.lang === "DE" ? "Einklappen" : "Collapse")}
+          title={collapsed ? (lang === "DE" ? "Ausklappen" : "Expand") : (lang === "DE" ? "Einklappen" : "Collapse")}
         >
           <svg className={`w-5 h-5 transform transition-transform ${collapsed ? "-rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -1117,7 +1184,7 @@ function AutofillPack({ profile, lang, onCopy, L, formatAddress, collapsed, onTo
           type="button"
           className="ts-no-print h-9 w-9 rounded-xl border border-neutral-200 bg-white text-neutral-500 shadow-sm hover:bg-neutral-50 hover:text-neutral-800 transition flex items-center justify-center"
           onClick={onToggleCollapse}
-          title={collapsed ? (L.lang === "DE" ? "Ausklappen" : "Expand") : (L.lang === "DE" ? "Einklappen" : "Collapse")}
+          title={collapsed ? (lang === "DE" ? "Ausklappen" : "Expand") : (lang === "DE" ? "Einklappen" : "Collapse")}
         >
           <svg className={`w-5 h-5 transform transition-transform ${collapsed ? "-rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -1533,6 +1600,13 @@ export default function App() {
     });
   };
 
+  const updateDeUmmeldung = (field, value) => {
+    setApp((a) => ({
+      ...a,
+      deUmmeldung: { ...a.deUmmeldung, [field]: value },
+    }));
+  };
+
   const formatAddress = (addr) => {
     if (!addr.street && !addr.city) return "";
     const line1 = `${addr.street} ${addr.houseNo}`.trim();
@@ -1900,8 +1974,8 @@ export default function App() {
                 <TSButton onClick={openPreview} disabled={totals.total === 0} title={L.preview}>
                   {L.preview}
                 </TSButton>
-                <TSButton onClick={() => setExportPackOpen(true)} title={L.exportPack}>
-                  {L.exportPack}
+                <TSButton onClick={() => setExportPackOpen(true)} title={L.export}>
+                  {L.export}
                 </TSButton>
               </div>
 
@@ -2077,6 +2151,18 @@ export default function App() {
               collapsed={app.ui.addressProfileCollapsed}
               onToggleCollapse={toggleAddressProfileCollapse}
             />
+            
+            {app.country === "DE" && (
+              <DeUmmeldungCard
+                data={app.deUmmeldung}
+                onUpdate={updateDeUmmeldung}
+                collapsed={app.ui.deUmmeldungCollapsed}
+                onToggleCollapse={toggleUmmeldungCollapse}
+                lang={lang}
+                L={L}
+              />
+            )}
+
             <AutofillPack 
               profile={app.addressProfile}
               lang={lang}
